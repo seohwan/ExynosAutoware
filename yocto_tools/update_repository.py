@@ -52,12 +52,6 @@ def remove_copied_source_codes():
     os.system('sudo rm -r ../rubis_ws')
     return
 
-def tmp_exit():
-    os.system('git checkout -f master')
-    os.system('git reset --hard')
-    remove_copied_source_codes()
-    exit()
-
 def main():
     null_command = ' > /dev/null 2>&1'
 
@@ -75,7 +69,7 @@ def main():
         for package_group in package_groups:
             package_group_path = os.path.join(category_path, package_group)
             packages = get_dirs(package_group_path)
-            print('Update packages in autwoare_ws/src/'+package_group)
+            print('Update packages in autwoare_ws/src/'+category+'/'+package_group)
             for i in tqdm(range(len(packages))):
                 package = packages[i]
                 package_path = os.path.join(package_group_path, package)
@@ -124,9 +118,9 @@ def main():
             os.system('git push origin '+package+null_command)
         print(package+' is updated')
         
-    tmp_exit()
-
-    
+    os.system('git checkout -f master')
+    os.system('git reset --hard')
+    remove_copied_source_codes()
 
     return
 
