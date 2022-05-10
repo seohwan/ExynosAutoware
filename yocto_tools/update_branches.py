@@ -45,9 +45,16 @@ def copy_source_codes():
     print('Source codes are copied to ExynosAutoware/..')
     return
 
-def remove_source_codes():
+def remove_copied_source_codes():
     os.system('sudo rm -r ../autoware_ws')
     os.system('sudo rm -r ../rubis_ws')
+    return
+
+def tmp_exit():
+    os.system('git checkout master')
+    os.system('git reset --hard')
+    remove_copied_source_codes()
+    exit()
 
 def main():
     null_command = ' > /dev/null 2>&1'
@@ -60,25 +67,25 @@ def main():
     branches = get_remote_branches()
     cateogries = get_dirs(autoware_ws_path)
 
-    # for category in cateogries:
-    #     category_path = os.path.join(autoware_ws_path, category)
-    #     package_groups = get_dirs(category_path)
-    #     for package_group in package_groups:
-    #         package_group_path = os.path.join(category_path, package_group)
-    #         packages = get_dirs(package_group_path)
-    #         for package in packages:
-    #             branch_name = 'origin/'+package
-    #             if branch_name not in branches: # Branch is not exist
-    #                 # os.system('git checkout -b '+package+null_command)
-    #                 # os.system('git push origin '+package+':'+package+null_command)
-    #                 # os.system('sudo rm -r *')
-    #                 print(branch_name)    
-                    
-
-                
-
-    #         exit()  
-
+    for category in cateogries:
+        category_path = os.path.join(autoware_ws_path, category)
+        package_groups = get_dirs(category_path)
+        for package_group in package_groups:
+            package_group_path = os.path.join(category_path, package_group)
+            packages = get_dirs(package_group_path)
+            for package in packages:
+                branch_name = 'origin/'+package
+                if branch_name not in branches: # Branch is not exist
+                    os.system('git checkout -b '+package+null_command)
+                    os.system('git push origin '+package+':'+package+null_command)
+                    os.system('sudo rm -r *')
+                    os.system('git add -A && git commit -m branch '+package+' is created.')
+                    os.system('git push origin '+package)
+                # else:
+                # if branch_name in branches: # Branch is not exist
+                #     os.system('git branch -d '+package)
+                #     os.system('git push origin --delete '+ package)
+                tmp_exit()
 
     
 
