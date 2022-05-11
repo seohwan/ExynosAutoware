@@ -63,7 +63,7 @@
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>rubis_msgs</exec_depend>
   <exec_depend>tf</exec_depend>
-  <exec_depend>can_data_msg</exec_depend>
+  <exec_depend>can_data_msgs</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
