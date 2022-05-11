@@ -61,6 +61,8 @@ def extract_ros_recipe_info(ros_package_name, ros_package_path):
                 dependency = 'python-pyserial'
             elif dependency == 'eigen':
                 dependency = 'libeigen'
+            elif dependency == 'libxmu-dev':
+                dependency = 'libxmu'
 
             if dependency not in info.dependency:
                 info.dependency.append(dependency)
