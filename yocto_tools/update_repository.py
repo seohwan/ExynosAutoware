@@ -9,10 +9,13 @@ def get_remote_branches():
         branches.extend(f.readlines())
     os.system('rm tmp.txt')
 
-    branches = branches[1:]
     for i in range(len(branches)):
         branch = branches[i]
         branches[i] = branch.strip()
+    
+    branches.remove('origin/master')
+    branches.remove('origin/main')
+    branches = [branch for branch in branches if not branch.startswith('origin/HEAD')]
     
     return branches
 
@@ -90,6 +93,11 @@ def update_branch(branch_name, src_path):
     
     return
 
+def delete_branch(branch_name):
+    os.system('git push origin --delete '+branch_name)
+    
+    return
+
 def main():
     
     init()
@@ -118,6 +126,7 @@ def main():
                     create_branch(package, package_path)
                 else:
                     update_branch(package, package_path)
+                    branches.remove(branch_name)
     
     # Update rubis_ws
     rubis_ws_path = '../rubis_ws/src'
@@ -135,6 +144,12 @@ def main():
             create_branch(package, package_path)
         else:
             update_branch(package, package_path)
+            branches.remove(branch_name)
+    
+    # Delete unexist branches    
+    for branch in branches:
+        branch_name = branch.split('/')[1]
+        delete_branch(branch_name)
         
     terminate()
     
