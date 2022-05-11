@@ -19,11 +19,6 @@ find_package(autoware_build_flags REQUIRED)
 
 AW_CHECK_CUDA()
 
-if(USE_CUDA)
-  add_definitions(-DCUDA_FOUND)
-  list(APPEND PCL_OPENMP_PACKAGES ndt_gpu)
-endif()
-
 if(NOT EIGEN3_FOUND)
   # Fallback to cmake_modules
   find_package(cmake_modules REQUIRED)
