@@ -114,6 +114,7 @@ def create_ros_recipe_context(ros_recipe_info):
 def write_recipe_file(recipe_name, ros_recipe_context):
     recipe_name = recipe_name.replace('_','-')
     recipe_path = 'yocto_tools/recipes/'+recipe_name
+    os.system('yocto_tools/recipes > /dev/null 2>&1')
     os.mkdir(recipe_path)
     f = open(recipe_path+'/'+recipe_name+'.bb','w')
     for line in ros_recipe_context:
