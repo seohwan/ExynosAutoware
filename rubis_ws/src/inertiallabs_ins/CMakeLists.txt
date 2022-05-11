@@ -38,10 +38,10 @@ else()
 endif()
 
 add_executable(il_ins src/il_ins.cpp
-                      ../inertiallabs_sdk/ILDriver.cpp
-                      ../inertiallabs_sdk/UDDParser.cpp
-                      ../inertiallabs_sdk/platforms/${IL_PLATFORM}/SerialPort.cpp
-                      ../inertiallabs_sdk/platforms/${IL_PLATFORM}/NetClient.cpp
+                      src/inertiallabs_sdk/ILDriver.cpp
+                      src/inertiallabs_sdk/UDDParser.cpp
+                      src/inertiallabs_sdk/platforms/${IL_PLATFORM}/SerialPort.cpp
+                      src/inertiallabs_sdk/platforms/${IL_PLATFORM}/NetClient.cpp
 )
 add_dependencies(il_ins inertiallabs_msgs_generate_messages_cpp)
 if(WIN32)
