@@ -63,6 +63,8 @@ def extract_ros_recipe_info(ros_package_name, ros_package_path):
                 dependency = 'python-pyserial'
             elif dependency == 'python-threading':
                 dependency = 'python'
+            elif dependency == 'libglew-dev':
+                dependency = 'glew'
             elif dependency == 'eigen':
                 dependency = 'libeigen'
             

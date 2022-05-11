@@ -21,6 +21,5 @@
   <depend>tf</depend>
   <depend>vector_map</depend>
   <depend>visualization_msgs</depend>
-  <depend>libboost-filesystem-dev</depend>
   
 </package>
