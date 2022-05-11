@@ -22,6 +22,7 @@ def init():
     os.system('git checkout master')
     os.system('git reset --hard')
     move_to_top()
+    os.system('suro rm -r yocto_tools/recipes')
     return
 
 def extract_ros_recipe_info(ros_package_name, ros_package_path):
@@ -39,8 +40,8 @@ def extract_ros_recipe_info(ros_package_name, ros_package_path):
         line_num = i + 1
         
         if 'license>' in line:
-            license = line.split('license>')[1]
-            license = license.split('</')[0]
+            license = line.split('>')[1]
+            license = license.split('<')[0]
             if(license == 'Apache 2'): license = 'Apache-2.0'
             info.license = license
             
