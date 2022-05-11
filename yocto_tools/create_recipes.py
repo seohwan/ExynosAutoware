@@ -57,7 +57,7 @@ def extract_ros_recipe_info(ros_package_name, ros_package_path):
                 dependency = 'libtinyxml'
             elif dependency == 'ndt-gpu':
                 continue
-            elif dependency == 'libpcl-all-dev' or dependency == 'libpcl-dev':
+            elif dependency == 'libpcl-all-dev' or dependency == 'libpcl-dev' or dependency == 'libpcl-all':
                 dependency = 'pcl'
             elif dependency == 'python-serial':
                 dependency = 'python-pyserial'
@@ -69,6 +69,10 @@ def extract_ros_recipe_info(ros_package_name, ros_package_path):
                 dependency = 'python-pyyaml'
             elif dependency == 'eigen':
                 dependency = 'libeigen'
+            elif dependency == 'libopencv-dev':
+                dependency = 'opencv'
+            elif dependency == 'qtbase5-dev':
+                dependency = 'qtbase'
             
             if dependency.endswith('-dev'):
                 dependency = dependency[:-4]
