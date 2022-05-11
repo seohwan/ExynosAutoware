@@ -68,6 +68,8 @@ def extract_ros_recipe_info(ros_package_name, ros_package_path):
     srcrev = srcrev.strip('\n')
     info.srcrev = srcrev
      
+    os.system('rm srcrev_tmp.txt')
+
     return info
 
 def create_ros_recipe_context(ros_recipe_info):
