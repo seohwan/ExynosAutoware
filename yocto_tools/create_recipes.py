@@ -22,7 +22,7 @@ def init():
     os.system('git checkout master')
     os.system('git reset --hard')
     move_to_top()
-    os.system('suro rm -r yocto_tools/recipes')
+    os.system('sudo rm -r yocto_tools/recipes')
     return
 
 def extract_ros_recipe_info(ros_package_name, ros_package_path):
