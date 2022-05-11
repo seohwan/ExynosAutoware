@@ -65,6 +65,8 @@ def extract_ros_recipe_info(ros_package_name, ros_package_path):
                 dependency = 'python'
             elif dependency == 'libglew-dev':
                 dependency = 'glew'
+            elif dependency == 'python-yaml':
+                dependency = 'python-pyyaml'
             elif dependency == 'eigen':
                 dependency = 'libeigen'
             

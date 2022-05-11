@@ -15,7 +15,6 @@ find_package(
     libwaypoint_follower
     op_planner
     op_ros_helpers
-    op_simu
     op_utility
     pcl_conversions
     pcl_ros

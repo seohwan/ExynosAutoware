@@ -15,7 +15,6 @@
   <depend>jsk_recognition_msgs</depend>
   <depend>map_file</depend>
   <depend>op_planner</depend>
-  <depend>op_simu</depend>
   <depend>op_utility</depend>
   <depend>pcl_conversions</depend>
   <depend>pcl_ros</depend>

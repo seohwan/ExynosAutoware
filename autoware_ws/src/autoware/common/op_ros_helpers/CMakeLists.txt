@@ -11,7 +11,6 @@ find_package(catkin REQUIRED COMPONENTS
   libwaypoint_follower
   map_file
   op_planner
-  op_simu
   op_utility
   pcl_conversions
   pcl_ros
