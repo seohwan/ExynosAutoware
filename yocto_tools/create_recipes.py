@@ -81,7 +81,7 @@ def create_ros_recipe_context(ros_recipe_info):
     recipe_context.append('ROS_CN = \"'+ros_recipe_info.name+'\"\n')
     recipe_context.append('ROS_BPN = \"'+ros_recipe_info.name+'\"\n\n')
     
-    recipe_context.append('ROS_BUILD_DEPEND = \" \\\n')
+    recipe_context.append('ROS_BUILD_DEPENDS = \" \\\n')
     for dependency in ros_recipe_info.dependency:
         recipe_context[-1] = recipe_context[-1] + '\t'+dependency+' \\\n'
     recipe_context[-1] = recipe_context[-1] + '\"\n\n'
