@@ -54,7 +54,7 @@ def extract_ros_recipe_info(ros_package_name, ros_package_path):
             dependency = dependency.replace('_','-')
 
             if dependency == 'tinyxml':
-                dependency = 'tinyxml-vendor'
+                dependency = 'libtinyxml'
             elif dependency == 'libpcl-all-dev' or dependency == 'libpcl-dev':
                 dependency = 'pcl'
             elif dependency == 'python-serial':
