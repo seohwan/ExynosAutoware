@@ -61,6 +61,8 @@ def extract_ros_recipe_info(ros_package_name, ros_package_path):
                 dependency = 'pcl'
             elif dependency == 'python-serial':
                 dependency = 'python-pyserial'
+            elif dependency == 'python-threading':
+                dependency = 'python'
             elif dependency == 'eigen':
                 dependency = 'libeigen'
             
