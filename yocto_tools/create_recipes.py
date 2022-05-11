@@ -52,7 +52,8 @@ def extract_ros_recipe_info(ros_package_name, ros_package_path):
             dependency = line.split('>')[1]
             dependency = dependency.split('<')[0]
             dependency = dependency.replace('_','-')
-            if dependency is 'tinyxml':
+
+            if dependency == 'tinyxml':
                 dependency = 'tinyxml-vendor'
             if dependency not in info.dependency:
                 info.dependency.append(dependency)
