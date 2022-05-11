@@ -16,8 +16,12 @@ The RUBIS Autoware project for Exynos Board.
 - They are used to create Yocto recipes.
 
 # Yocto Tools
-- `yocto_tools/update_repository.py`: Automatically create and update branch of remote repository based on current `master` branch.
-- `yocto_tools/create_recipes.py`: Create Yocto recipes to `yocto_tools/recipes` based on `autoware_ws` and `rubis_ws`.
+- `yocto_tools/update_repository.py`
+    * Automatically create and update branch of remote repository based on current `master` branch.
+- `yocto_tools/create_recipes.py`
+    * Create Yocto recipes to `yocto_tools/recipes` based on `autoware_ws` and `rubis_ws`.
+- `yotcto_tools/move_recipes.sh`
+    * Move compresed recipes(`recipes.zip`) to `recipes-autoware`. Shoud launch it in `yocto_tools` after recipe creation.
 
 # TODO
 * Need to create opencl based `ndt_gpu` and `vision_darknet_detect` packages.
