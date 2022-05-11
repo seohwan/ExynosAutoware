@@ -52,15 +52,51 @@ def remove_copied_source_codes():
     os.system('sudo rm -r ../rubis_ws')
     return
 
-def main():
-    null_command = ' > /dev/null 2>&1'
-
+def init():
     os.system('git checkout master')
     move_to_top()
     copy_source_codes()
+    return
 
-    autoware_ws_path = '../autoware_ws/src'
+def terminate():
+    os.system('git checkout -f master')
+    os.system('git reset --hard')
+    remove_copied_source_codes()
+    return
+
+def create_branch(branch_name, src_path):
+    null_command = ' > /dev/null 2>&1'
+
+    os.system('git checkout -f -b '+branch_name+null_command)
+    os.system('git push origin '+branch_name+':'+branch_name+null_command)
+    os.system('sudo rm -r *'+null_command)
+    os.system('cp -r '+src_path+'/* .'+null_command)
+    os.system('git add -A'+null_command)
+    os.system('git commit -m \"branch '+branch_name+' is created.\"'+null_command)
+    os.system('git push origin '+branch_name+null_command)
+    
+    return
+
+def update_branch(branch_name, src_path):
+    null_command = ' > /dev/null 2>&1'
+    
+    os.system('git switch -f '+branch_name+null_command)
+    os.system('git reset --hard'+null_command)
+    os.system('sudo rm -r *'+null_command)
+    os.system('cp -r '+src_path+'/* .'+null_command)
+    os.system('git add -A'+null_command)
+    os.system('git commit -m \"Updated at +'+str(datetime.now())+'\"'+null_command)
+    os.system('git push origin '+branch_name+null_command)
+    
+    return
+
+def main():
+    
+    init()
     branches = get_remote_branches()
+
+    # Update autoware_ws    
+    autoware_ws_path = '../autoware_ws/src'
     cateogries = get_dirs(autoware_ws_path)
 
     for category in cateogries:
@@ -70,58 +106,39 @@ def main():
             package_group_path = os.path.join(category_path, package_group)
             packages = get_dirs(package_group_path)
             print('Update packages in autwoare_ws/src/'+category+'/'+package_group)
-            for i in tqdm(range(len(packages))):
+            
+            pb = tqdm(range(len(packages))) # progress bar
+            for i in pb:
                 package = packages[i]
                 package_path = os.path.join(package_group_path, package)
                 branch_name = 'origin/'+package
+                pb.set_description(package)
+                
                 if branch_name not in branches: # Branch is not exist
-                    os.system('git checkout -b '+package+null_command)
-                    os.system('git push origin '+package+':'+package+null_command)
-                    os.system('sudo rm -r *'+null_command)
-                    os.system('cp -r '+package_path+'/* .'+null_command)
-                    os.system('git add -A'+null_command)
-                    os.system('git commit -m \"branch '+package+' is created.\"'+null_command)
-                    os.system('git push origin '+package+null_command)
+                    create_branch(package, package_path)
                 else:
-                    os.system('git checkout '+package+null_command)
-                    os.system('git reset --hard'+null_command)
-                    os.system('sudo rm -r *'+null_command)
-                    os.system('cp -r '+package_path+'/* .'+null_command)
-                    os.system('git add -A'+null_command)
-                    os.system('git commit -m \"Updated at +'+datetime.now()+'\"'+null_command)
-                    os.system('git push origin '+package+null_command)
-                print(package+' is updated')
+                    update_branch(package, package_path)
     
+    # Update rubis_ws
     rubis_ws_path = '../rubis_ws/src'
     packages = get_dirs(rubis_ws_path)
 
     print('Update packages in rubis_ws')
-    for i in tqdm(range(len(packages))):
+    pb = tqdm(range(len(packages)))
+    for i in pb:
         package = packages[i]
         package_path = os.path.join(rubis_ws_path, package)
-        branch_name = 'origin/'+package
+        branch_name = 'origin/'+package        
+        pb.set_description(package)
+        
         if branch_name not in branches: # Branch is not exist
-            os.system('git checkout -b '+package+null_command)
-            os.system('git push origin '+package+':'+package+null_command)
-            os.system('sudo rm -r *'+null_command)
-            os.system('cp -r '+package_path+'/* .'+null_command)
-            os.system('git add -A'+null_command)
-            os.system('git commit -m \"branch '+package+' is created.\"'+null_command)
-            os.system('git push origin '+package+null_command)
+            create_branch(package, package_path)
         else:
-            os.system('git checkout '+package+null_command)
-            os.system('git reset --hard'+null_command)
-            os.system('sudo rm -r *'+null_command)
-            os.system('cp -r '+package_path+'/* .'+null_command)
-            os.system('git add -A'+null_command)
-            os.system('git commit -m \"Updated at \"'+null_command)
-            os.system('git push origin '+package+null_command)
+            update_branch(package, package_path)
         print(package+' is updated')
         
-    os.system('git checkout -f master')
-    os.system('git reset --hard')
-    remove_copied_source_codes()
-
+    terminate()
+    
     return
 
 if __name__ == '__main__':
