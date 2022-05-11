@@ -12,8 +12,11 @@ def get_remote_branches():
         branch = branches[i]
         branches[i] = branch.strip()
     
-    branches.remove('origin/master')
-    branches.remove('origin/main')
+    blacklist = ['origin/master', 'origin/main']
+    for target in blacklist:
+        if target in branches:
+            branches.remove(target)
+    
     branches = [branch for branch in branches if not branch.startswith('origin/HEAD')]
     
     return branches
