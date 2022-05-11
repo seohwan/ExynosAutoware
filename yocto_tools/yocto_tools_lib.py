@@ -14,7 +14,6 @@ def get_remote_branches():
     
     branches.remove('origin/master')
     branches.remove('origin/main')
-    branches.remove('origin/inertiallabs_sdk')
     branches = [branch for branch in branches if not branch.startswith('origin/HEAD')]
     
     return branches
