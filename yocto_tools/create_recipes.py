@@ -1,4 +1,5 @@
 import os
+from struct import pack
 from tqdm import tqdm
 from yocto_tools_lib import *
 import hashlib
@@ -47,8 +48,8 @@ def extract_ros_recipe_info(ros_package_name, ros_package_path):
             info.lic_files_chksum = lic_files_chksum
             
         elif 'depend>' in line and 'buildtool_depend' not in line:
-            dependency = line.split('depend>')[1]
-            dependency = dependency.split('</')[0]
+            dependency = line.split('>')[1]
+            dependency = dependency.split('<')[0]
             dependency = dependency.replace('_','-')
             if dependency not in info.dependency:
                 info.dependency.append(dependency)
