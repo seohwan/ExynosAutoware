@@ -38,7 +38,6 @@ find_package(catkin REQUIRED COMPONENTS
   jsk_rviz_plugins
   nav_msgs
   ndt_cpu
-  ndt_tku
   pcl_conversions
   pcl_ros
   roscpp
@@ -58,7 +57,6 @@ catkin_package(
     autoware_msgs
     jsk_rviz_plugins
     ndt_cpu
-    ndt_tku
     std_msgs
     rubis_msgs
     velodyne_pointcloud
@@ -104,18 +102,6 @@ add_executable(queue_counter nodes/queue_counter/queue_counter.cpp)
 target_link_libraries(queue_counter ${catkin_LIBRARIES})
 add_dependencies(queue_counter ${catkin_EXPORTED_TARGETS})
 
-add_executable(ndt_matching_tku nodes/ndt_matching_tku/ndt_matching_tku.cpp)
-target_link_libraries(ndt_matching_tku ${catkin_LIBRARIES})
-add_dependencies(ndt_matching_tku ${catkin_EXPORTED_TARGETS})
-
-add_executable(ndt_mapping_tku nodes/ndt_mapping_tku/ndt_mapping_tku.cpp)
-target_link_libraries(ndt_mapping_tku ${catkin_LIBRARIES})
-add_dependencies(ndt_mapping_tku ${catkin_EXPORTED_TARGETS})
-
-add_executable(mapping nodes/ndt_mapping_tku/mapping.cpp)
-target_link_libraries(mapping ${catkin_LIBRARIES})
-add_dependencies(mapping ${catkin_EXPORTED_TARGETS})
-
 add_library(ndt_matching_monitor_lib SHARED
   nodes/ndt_matching_monitor/ndt_matching_monitor.h
   nodes/ndt_matching_monitor/ndt_matching_monitor.cpp
@@ -147,7 +133,6 @@ install(
     icp_matching
     mapping
     ndt_mapping
-    ndt_mapping_tku
     ndt_matching
     ndt_matching_monitor
     ndt_matching_monitor_lib
