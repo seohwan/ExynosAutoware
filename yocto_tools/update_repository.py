@@ -135,7 +135,6 @@ def main():
             create_branch(package, package_path)
         else:
             update_branch(package, package_path)
-        print(package+' is updated')
         
     terminate()
     
