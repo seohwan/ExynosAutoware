@@ -73,6 +73,8 @@ def extract_ros_recipe_info(ros_package_name, ros_package_path):
                 dependency = 'opencv'
             elif dependency == 'qtbase5-dev':
                 dependency = 'qtbase'
+            elif dependency == 'serial':
+                dependency = 'rosserial'
             
             if dependency.endswith('-dev'):
                 dependency = dependency[:-4]
