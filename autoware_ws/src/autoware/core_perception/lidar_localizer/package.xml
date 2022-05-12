@@ -10,10 +10,8 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <depend>autoware_config_msgs</depend>
-  <depend>autoware_health_checker</depend>
   <depend>autoware_msgs</depend>
   <depend>eigen</depend>
-  <depend>jsk_rviz_plugins</depend>
   <depend>libpcl-all-dev</depend>
   <depend>message_filters</depend>
   <depend>nav_msgs</depend>

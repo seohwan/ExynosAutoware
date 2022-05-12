@@ -33,9 +33,7 @@ endif()
 find_package(catkin REQUIRED COMPONENTS
   ${PCL_OPENMP_PACKAGES}
   autoware_config_msgs
-  autoware_health_checker
   autoware_msgs
-  jsk_rviz_plugins
   nav_msgs
   ndt_cpu
   pcl_conversions
@@ -53,9 +51,7 @@ catkin_package(
   CATKIN_DEPENDS
     ${PCL_OPENMP_PACKAGES}
     autoware_config_msgs
-    autoware_health_checker
     autoware_msgs
-    jsk_rviz_plugins
     ndt_cpu
     std_msgs
     rubis_msgs
@@ -102,22 +98,6 @@ add_executable(queue_counter nodes/queue_counter/queue_counter.cpp)
 target_link_libraries(queue_counter ${catkin_LIBRARIES})
 add_dependencies(queue_counter ${catkin_EXPORTED_TARGETS})
 
-add_library(ndt_matching_monitor_lib SHARED
-  nodes/ndt_matching_monitor/ndt_matching_monitor.h
-  nodes/ndt_matching_monitor/ndt_matching_monitor.cpp
-)
-target_include_directories(ndt_matching_monitor_lib PRIVATE
-  ${catkin_INCLUDE_DIRS}
-  ${PCL_INCLUDE_DIRS}
-)
-add_dependencies(ndt_matching_monitor_lib
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(ndt_matching_monitor_lib ${catkin_LIBRARIES})
-
-add_executable(ndt_matching_monitor nodes/ndt_matching_monitor/ndt_matching_monitor_node.cpp)
-target_link_libraries(ndt_matching_monitor ndt_matching_monitor_lib ${catkin_LIBRARIES})
-
 add_executable(icp_matching nodes/icp_matching/icp_matching.cpp)
 target_link_libraries(icp_matching ${catkin_LIBRARIES})
 add_dependencies(icp_matching ${catkin_EXPORTED_TARGETS})
@@ -134,8 +114,6 @@ install(
     mapping
     ndt_mapping
     ndt_matching
-    ndt_matching_monitor
-    ndt_matching_monitor_lib
     queue_counter
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

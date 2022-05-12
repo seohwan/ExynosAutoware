@@ -13,7 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
   grid_map_cv
   grid_map_msgs
   grid_map_ros
-  jsk_rviz_plugins
   pcl_ros
   roscpp
   sensor_msgs
@@ -35,7 +34,6 @@ catkin_package(
     grid_map_ros
     grid_map_cv
     grid_map_msgs
-    jsk_rviz_plugins
     rubis_lib
 )
 
