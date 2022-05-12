@@ -207,7 +207,3 @@ install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
   PATTERN ".svn" EXCLUDE
 )
-
-if (CATKIN_ENABLE_TESTING)
-  roslint_add_test()
-endif()
