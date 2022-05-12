@@ -97,7 +97,7 @@ def extract_ros_recipe_info(ros_package_name, ros_package_path):
 def create_ros_recipe_context(ros_recipe_info):
     recipe_context = []
     
-    recipe_context.append('inherit ros_distro_melodic\n')
+    recipe_context.append('inherit ros_distro_noetic\n')
     recipe_context.append('inherit ros_superflore_generated\n\n')
     recipe_context.append('DESCRIPTION = \"The '+ros_recipe_info.name+' package\"\n')
     recipe_context.append('AUTHOR = \"Hayeon Park <kite9240@gmail.com>\"\n')
