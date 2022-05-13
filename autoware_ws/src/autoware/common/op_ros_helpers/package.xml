@@ -22,4 +22,5 @@
   <depend>tf</depend>
   <depend>vector_map_msgs</depend>
   <depend>libwaypoint_follower</depend>
+  <depend>autoware_build_flags</depend>
 </package>

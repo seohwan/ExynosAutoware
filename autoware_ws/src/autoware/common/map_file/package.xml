@@ -21,5 +21,4 @@
   <depend>tf</depend>
   <depend>vector_map</depend>
   <depend>visualization_msgs</depend>
-  
 </package>
