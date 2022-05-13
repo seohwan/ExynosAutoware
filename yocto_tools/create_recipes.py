@@ -195,7 +195,7 @@ def main():
         pb.set_description(package)
         info = extract_ros_recipe_info(package, package_path)
         ros_recipe_context = create_ros_recipe_context(info)
-        write_recipe_file(package, ros_recipe_context)
+        write_recipe_file(package, ros_recipe_context, recipe_version)
         
     return
 
