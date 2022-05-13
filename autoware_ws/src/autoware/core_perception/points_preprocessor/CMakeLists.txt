@@ -36,7 +36,6 @@ roslint_cpp(
   include/points_preprocessor/ray_ground_filter/ray_ground_filter.h
 )
 
-find_package(Qt5Core REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(PCL 1.7 REQUIRED)
 find_package(OpenMP)
@@ -101,7 +100,6 @@ target_include_directories(compare_map_filter PRIVATE
 target_link_libraries(compare_map_filter
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
-  ${Qt5Core_LIBRARIES}
 )
 add_dependencies(compare_map_filter ${catkin_EXPORTED_TARGETS})
 
