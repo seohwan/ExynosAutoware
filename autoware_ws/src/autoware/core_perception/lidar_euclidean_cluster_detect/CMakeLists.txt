@@ -58,40 +58,12 @@ add_executable(lidar_euclidean_cluster_detect
   nodes/lidar_euclidean_cluster_detect/cluster.cpp
 )
 
-find_package(CUDA)
 find_package(Eigen3 QUIET)
-
-AW_CHECK_CUDA()
-
-message("-- USING ACCELERATED CLUSTERING --")
-message("Version: " ${CUDA_VERSION})
-message("Library: " ${CUDA_CUDA_LIBRARY})
-message("Runtime: " ${CUDA_CUDART_LIBRARY})
-target_compile_definitions(lidar_euclidean_cluster_detect PRIVATE
-  GPU_CLUSTERING=1
-)
-
-cuda_add_library(gpu_euclidean_clustering
-  include/gpu_euclidean_clustering.h
-  nodes/lidar_euclidean_cluster_detect/gpu_euclidean_clustering.cu
-)
-
-target_link_libraries(gpu_euclidean_clustering
-  ${catkin_LIBRARIES}
-)
 
 target_link_libraries(lidar_euclidean_cluster_detect
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
   ${YAML_CPP_LIBRARIES}
-  gpu_euclidean_clustering
-)
-
-install(TARGETS
-  gpu_euclidean_clustering
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 add_dependencies(lidar_euclidean_cluster_detect
