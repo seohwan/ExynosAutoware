@@ -115,7 +115,7 @@ def create_ros_recipe_context(ros_recipe_info):
         recipe_context[-1] = recipe_context[-1] + '\t'+dependency+' \\\n'
     recipe_context[-1] = recipe_context[-1] + '\"\n\n'
     
-    recipe_context.append('ROS_BUILDTOOL_DEPENDS = " \\\n\tcatkin-native \\\tautoware-build-flags \\\n\"\n\n')
+    recipe_context.append('ROS_BUILDTOOL_DEPENDS = " \\\n\tcatkin-native \\\n\tautoware-build-flags \\\n\"\n\n')
     
     recipe_context.append('ROS_EXPORT_DEPENDS = \" \\\n')
     for dependency in ros_recipe_info.dependency:
