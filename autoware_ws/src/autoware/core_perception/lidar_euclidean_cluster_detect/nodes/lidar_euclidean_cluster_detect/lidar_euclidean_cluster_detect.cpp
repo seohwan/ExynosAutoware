@@ -71,7 +71,7 @@
 
 #define SPIN_PROFILING
 
-#define GPU_CLUSTERING
+// #define GPU_CLUSTERING
 
 #ifdef GPU_CLUSTERING
 
