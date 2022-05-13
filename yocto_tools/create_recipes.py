@@ -158,7 +158,7 @@ def write_recipe_file(recipe_name, ros_recipe_context, recipe_version):
 def main():
     init()
 
-    recipe_version = "0.1" # Version of recipes
+    recipe_version = "1.0" # Version of recipes
     
     # Create recipes for autoware_ws    
     autoware_ws_path = 'autoware_ws/src'
