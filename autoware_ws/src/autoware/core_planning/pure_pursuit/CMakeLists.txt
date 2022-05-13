@@ -10,7 +10,6 @@ find_package(
   catkin REQUIRED COMPONENTS
     amathutils_lib
     autoware_config_msgs
-    autoware_health_checker
     autoware_msgs
     geometry_msgs
     libwaypoint_follower

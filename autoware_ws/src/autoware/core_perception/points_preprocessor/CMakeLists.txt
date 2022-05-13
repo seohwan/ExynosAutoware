@@ -10,7 +10,6 @@ endif()
 find_package(catkin REQUIRED COMPONENTS
   autoware_msgs
   autoware_config_msgs
-  autoware_health_checker
   cv_bridge
   pcl_conversions
   pcl_ros

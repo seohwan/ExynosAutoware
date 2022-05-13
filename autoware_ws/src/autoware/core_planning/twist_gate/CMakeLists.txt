@@ -9,7 +9,6 @@ endif()
 find_package(
   catkin REQUIRED COMPONENTS
     autoware_config_msgs
-    autoware_health_checker
     autoware_msgs
     geometry_msgs
     ros_observer
