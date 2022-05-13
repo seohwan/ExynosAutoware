@@ -3,7 +3,7 @@ project(vision_beyond_track)
 
 find_package(OpenCV REQUIRED)
 
-find_package(autoware_build_flags REQUIRED)
+
 
 find_package(catkin REQUIRED COMPONENTS
   autoware_msgs

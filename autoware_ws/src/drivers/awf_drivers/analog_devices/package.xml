@@ -8,7 +8,7 @@
   <url type="website">http://wiki.ros.org/adi_driver</url>
   <license>BSD</license>
 
-  <buildtool_depend>autoware_build_flags</buildtool_depend>
+
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>roslint</build_depend>

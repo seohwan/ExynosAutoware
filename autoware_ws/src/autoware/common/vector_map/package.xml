@@ -6,7 +6,6 @@
   <maintainer email="syouji@axe.bz">syouji</maintainer>
   <license>Apache 2</license>
 
-  <buildtool_depend>autoware_build_flags</buildtool_depend>
   <buildtool_depend>catkin</buildtool_depend>
 
   <depend>geometry_msgs</depend>
@@ -14,5 +13,4 @@
   <depend>roslint</depend>
   <depend>vector_map_msgs</depend>
   <depend>visualization_msgs</depend>
-  <depend>autoware_build_flags</depend>
 </package>

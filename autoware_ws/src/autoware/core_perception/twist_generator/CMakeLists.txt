@@ -3,7 +3,7 @@ project(twist_generator)
 
 add_compile_options(-std=c++11)
 
-find_package(autoware_build_flags REQUIRED)
+
 find_package(catkin REQUIRED
   amathutils_lib
   autoware_msgs

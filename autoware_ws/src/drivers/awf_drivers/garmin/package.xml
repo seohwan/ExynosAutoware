@@ -8,7 +8,7 @@
   <author email="yuki@ertl.jp">Yuki Kitsukawa</author> -->
   <license>BSD</license>
   
-  <buildtool_depend>autoware_build_flags</buildtool_depend>
+
   <buildtool_depend>catkin</buildtool_depend>
   
   <depend>nmea_msgs</depend>

@@ -15,7 +15,7 @@ endif()
 
 find_package(CUDA)
 find_package(Eigen3 QUIET)
-find_package(autoware_build_flags REQUIRED)
+
 
 AW_CHECK_CUDA()
 

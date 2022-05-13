@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(op_utility)
 
-find_package(autoware_build_flags REQUIRED)
+
 
 find_package(catkin REQUIRED COMPONENTS
   cmake_modules
