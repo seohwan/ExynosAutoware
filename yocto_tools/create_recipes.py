@@ -143,12 +143,12 @@ def create_ros_recipe_context(ros_recipe_info):
     
     return recipe_context
 
-def write_recipe_file(recipe_name, ros_recipe_context):
+def write_recipe_file(recipe_name, ros_recipe_context, recipe_version):
     recipe_name = recipe_name.replace('_','-')
     recipe_path = 'yocto_tools/recipes/'+recipe_name
     os.system('mkdir yocto_tools/recipes > /dev/null 2>&1')
     os.mkdir(recipe_path)
-    f = open(recipe_path+'/'+recipe_name+'.bb','w')
+    f = open(recipe_path+'/'+recipe_name+'_'+recipe_version+'.bb','w')
     for line in ros_recipe_context:
         f.write(line)
     f.close()
@@ -157,6 +157,8 @@ def write_recipe_file(recipe_name, ros_recipe_context):
 
 def main():
     init()
+
+    recipe_version = "0.1" # Version of recipes
     
     # Create recipes for autoware_ws    
     autoware_ws_path = 'autoware_ws/src'
@@ -178,7 +180,7 @@ def main():
                 pb.set_description(package)
                 info = extract_ros_recipe_info(package, package_path)
                 ros_recipe_context = create_ros_recipe_context(info)
-                write_recipe_file(package, ros_recipe_context)
+                write_recipe_file(package, ros_recipe_context, recipe_version)
     
     # Update rubis_ws
     rubis_ws_path = 'rubis_ws/src'
