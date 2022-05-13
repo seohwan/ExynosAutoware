@@ -139,6 +139,7 @@ def create_ros_recipe_context(ros_recipe_info):
     recipe_context.append('S = \"${WORKDIR}/git\"\n\n')
     recipe_context.append('ROS_BUILD_TYPE = \"cmake\"\n\n')
     recipe_context.append('inherit ros_catkin\n')
+    recipe_context.append('BBCLASSEXTEND_append = \"native nativesdk\"')
     
     return recipe_context
 
