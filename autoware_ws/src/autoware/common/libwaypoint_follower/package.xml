@@ -17,4 +17,5 @@
   <depend>rosunit</depend>
   <depend>std_msgs</depend>
   <depend>eigen</depend>
+  <depend>tf2_eigen</depend>
 </package>
