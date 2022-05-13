@@ -30,4 +30,5 @@
   <depend>yaml-cpp</depend>
   <depend>rubis_lib</depend>
   <depend>rubis_msgs</depend>
+  <depend>tf2_geometry_msgs</depend>
 </package>
