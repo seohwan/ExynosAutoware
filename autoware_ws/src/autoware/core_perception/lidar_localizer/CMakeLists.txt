@@ -13,11 +13,7 @@ if(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-find_package(CUDA)
 find_package(Eigen3 QUIET)
-
-
-AW_CHECK_CUDA()
 
 if(NOT EIGEN3_FOUND)
   # Fallback to cmake_modules
@@ -78,12 +74,6 @@ add_dependencies(ndt_matching ${catkin_EXPORTED_TARGETS})
 add_executable(ndt_mapping nodes/ndt_mapping/ndt_mapping.cpp)
 target_link_libraries(ndt_mapping ${catkin_LIBRARIES})
 add_dependencies(ndt_mapping ${catkin_EXPORTED_TARGETS})
-
-if(USE_CUDA)
-  target_include_directories(ndt_matching PRIVATE ${CUDA_INCLUDE_DIRS})
-  target_include_directories(ndt_mapping PRIVATE ${CUDA_INCLUDE_DIRS})
-endif()
-
 
 if(NOT (PCL_VERSION VERSION_LESS "1.7.2"))
   set_target_properties(ndt_matching PROPERTIES COMPILE_DEFINITIONS "USE_PCL_OPENMP")
