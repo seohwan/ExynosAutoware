@@ -101,7 +101,6 @@ install(
   TARGETS
     approximate_ndt_mapping
     icp_matching
-    mapping
     ndt_mapping
     ndt_matching
     queue_counter
@@ -114,16 +113,3 @@ install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
   PATTERN ".svn" EXCLUDE
 )
-
-if(CATKIN_ENABLE_TESTING)
-  find_package(rostest REQUIRED)
-
-  add_rostest_gtest(test_launch_ndt_matching
-    test/test_launch_ndt_matching.test
-    test/src/test_launch_ndt_matching.cpp
-  )
-
-  target_link_libraries(test_launch_ndt_matching
-    ${catkin_LIBRARIES}
-  )
-endif()
