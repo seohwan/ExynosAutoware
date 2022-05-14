@@ -45,9 +45,11 @@ def extract_ros_recipe_info(ros_package_name, ros_package_path):
             if(license == 'Apache 2'): license = 'Apache-2.0'
             info.license = license
             
-            lic_files_chksum = 'file://package.xml;beginline='+str(line_num)+';endline='+str(line_num)+';md5='+hashlib.md5(line.encode()).hexdigest()
+            lic_chksum_value = hashlib.md5(line.encode()).hexdigest()
             if ros_package_name == 'lidar_localizer':
-                lic_files_chksum = "7d942f6573dba1c22962da3cdf66dbc0"
+                lic_chksum_value = '7d942f6573dba1c22962da3cdf66dbc0'
+
+            lic_files_chksum = 'file://package.xml;beginline='+str(line_num)+';endline='+str(line_num)+';md5='+lic_chksum_value
             info.lic_files_chksum = lic_files_chksum
             
         elif 'depend>' in line and 'buildtool_depend' not in line:
