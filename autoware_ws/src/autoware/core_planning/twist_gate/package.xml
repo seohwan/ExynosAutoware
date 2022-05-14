@@ -21,4 +21,5 @@
   <depend>ros_observer</depend>
   <depend>rubis_lib</depend>
   <depend>rubis_msgs</depend>
+  <depend>autoware_system_msgs</depend>
 </package>
