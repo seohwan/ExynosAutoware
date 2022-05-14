@@ -143,7 +143,7 @@ def create_ros_recipe_context(ros_recipe_info):
     recipe_context.append('S = \"${WORKDIR}/git\"\n\n')
     recipe_context.append('ROS_BUILD_TYPE = \"cmake\"\n\n')
     recipe_context.append('inherit ros_catkin\n')
-    recipe_context.append('BBCLASSEXTEND_append = \"native nativesdk\"')
+    recipe_context.append('BBCLASSEXTEND_append = \"native nativesdk\"\n\n')
 
     recipe_context.append('FILES_${PN} += \" \\\n')
     recipe_context.append('\t${ros_libdir}/*/* \\\n')
@@ -151,7 +151,7 @@ def create_ros_recipe_context(ros_recipe_info):
 
     recipe_context.append('FILES_${PN}-dev += \" \\\n')
     recipe_context.append('\t${ros_libdir}/*/* \\\n')
-    recipe_context.append('\"\n\n')
+    recipe_context.append('\"')
     
     return recipe_context
 
