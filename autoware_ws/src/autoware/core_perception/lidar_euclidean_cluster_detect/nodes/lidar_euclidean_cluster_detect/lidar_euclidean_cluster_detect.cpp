@@ -68,6 +68,7 @@
 #include <autoware_msgs/DetectedObjectArray.h>
 
 #include "cluster.h"
+#include <rubis_lib/sched.hpp>
 
 #define SPIN_PROFILING
 
