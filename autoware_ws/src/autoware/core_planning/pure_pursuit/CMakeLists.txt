@@ -15,7 +15,6 @@ find_package(
     libwaypoint_follower
     roscpp
     roslint
-    rostest
     rosunit
     std_msgs
     tf
@@ -23,6 +22,7 @@ find_package(
     rubis_lib
     rubis_msgs
     can_data_msgs
+    visualization_msgs
 )
 
 catkin_package(

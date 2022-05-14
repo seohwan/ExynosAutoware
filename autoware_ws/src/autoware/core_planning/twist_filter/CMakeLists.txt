@@ -69,11 +69,3 @@ install(
   FILES_MATCHING PATTERN "*.h"
   PATTERN ".svn" EXCLUDE
 )
-
-if (CATKIN_ENABLE_TESTING)
-  find_package(rostest REQUIRED)
-  add_rostest_gtest(test_twist_filter_node test/test_twist_filter_node.test test/src/test_twist_filter_node.cpp src/twist_filter_node.cpp src/twist_filter.cpp)
-  add_dependencies(test_twist_filter_node ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME} ${PROJECT_NAME}_core)
-  target_link_libraries(test_twist_filter_node ${catkin_LIBRARIES} ${PROJECT_NAME}_core)
-  roslint_add_test()
-endif ()

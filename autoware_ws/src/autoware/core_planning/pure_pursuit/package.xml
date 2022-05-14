@@ -15,7 +15,6 @@
   <depend>geometry_msgs</depend>
   <depend>libwaypoint_follower</depend>
   <depend>roscpp</depend>
-  <depend>rostest</depend>
   <depend>rosunit</depend>
   <depend>std_msgs</depend>
   <depend>tf2</depend>
@@ -24,5 +23,6 @@
   <depend>rubis_lib</depend>
   <depend>rubis_msgs</depend>
   <depend>can_data_msgs</depend>
+  <depend>visualization_msgs</depend>
 
 </package>
