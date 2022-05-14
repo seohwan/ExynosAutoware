@@ -147,11 +147,11 @@ def create_ros_recipe_context(ros_recipe_info):
 
     recipe_context.append('FILES_${PN} += \" \\\n')
     recipe_context.append('\t${ros_libdir}/*/* \\\n')
-    recipe_context.append('\"')
+    recipe_context.append('\"\n\n')
 
     recipe_context.append('FILES_${PN}-dev += \" \\\n')
     recipe_context.append('\t${ros_libdir}/*/* \\\n')
-    recipe_context.append('\"')
+    recipe_context.append('\"\n\n')
     
     return recipe_context
 
