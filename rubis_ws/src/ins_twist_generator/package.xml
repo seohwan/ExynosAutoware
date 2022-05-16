@@ -27,6 +27,7 @@
   <depend>message_filters</depends>
   <depend>geometry_msgs</depend>
   <depend>inertiallabs_msgs</depend>
+  <depend>eigen</depend>
 
 </package>
 
