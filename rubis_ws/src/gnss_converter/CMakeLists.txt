@@ -19,6 +19,17 @@ find_package(catkin REQUIRED COMPONENTS
   tf
 )
 
+find_package(Eigen3 REQUIRED)
+set(EIGEN_PACKAGE EIGEN3)
+if(NOT EIGEN3_FOUND)
+  find_package(cmake_modules REQUIRED)
+  find_package(Eigen REQUIRED)
+  set(EIGEN3_INCLUDE_DIRS ${EIGEN_INCLUDE_DIRS})
+  set(EIGEN3_LIBRARIES ${EIGEN_LIBRARIES})
+  set(EIGEN_PACKAGE Eigen)
+endif()
+
+
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES gnss_converter

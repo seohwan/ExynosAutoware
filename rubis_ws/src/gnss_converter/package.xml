@@ -18,4 +18,5 @@
   <depend>inertiallabs_msgs</depend>
   <depend>message_filters</depend>
   <depend>tf</depend>
+  <depend>eigen</depend>
 </package>
