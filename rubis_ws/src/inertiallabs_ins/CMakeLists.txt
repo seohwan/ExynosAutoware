@@ -29,7 +29,7 @@ catkin_package(
 include_directories(${Opencv_INCLUDE_DIRS})
 include_directories(${system_lib_INCLUDE_DIRS})
 
-include_directories(../inertiallabs_sdk/)
+include_directories(src/inertiallabs_sdk/)
 
 if(WIN32)
 	set(IL_PLATFORM "windows")
