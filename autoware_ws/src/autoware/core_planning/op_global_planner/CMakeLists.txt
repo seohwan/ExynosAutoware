@@ -23,6 +23,7 @@ find_package(
     tf
     vector_map_msgs
     rubis_lib
+    nav_msgs
 )
 
 catkin_package(

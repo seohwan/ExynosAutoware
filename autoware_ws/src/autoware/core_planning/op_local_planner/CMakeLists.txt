@@ -9,6 +9,7 @@ endif()
 
 find_package(
   catkin REQUIRED COMPONENTS
+    autoware_msgs
     autoware_can_msgs
     geometry_msgs
     jsk_recognition_msgs
@@ -24,6 +25,7 @@ find_package(
     tf
     vector_map_msgs
     rubis_lib
+    nav_msgs
 )
 
 find_package(PkgConfig REQUIRED)

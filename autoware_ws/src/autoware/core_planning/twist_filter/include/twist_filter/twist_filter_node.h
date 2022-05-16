@@ -17,6 +17,7 @@
 #ifndef TWIST_FILTER_TWIST_FILTER_NODE_H
 #define TWIST_FILTER_TWIST_FILTER_NODE_H
 
+#include <ros/ros.h>
 #include "twist_filter/twist_filter.h"
 #include <memory>
 #include <std_msgs/Float32.h>
@@ -26,6 +27,7 @@
 #include <std_msgs/Bool.h>
 #include <rubis_msgs/TwistStamped.h>
 #include <rubis_lib/sched.hpp>
+
 
 namespace twist_filter_node
 {
