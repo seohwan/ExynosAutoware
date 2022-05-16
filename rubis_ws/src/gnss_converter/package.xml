@@ -17,4 +17,5 @@
   <exec_depend>std_msgs</exec_depend>
   <depend>inertiallabs_msgs</depend>
   <depend>message_filters</depend>
+  <depend>tf</depend>
 </package>
