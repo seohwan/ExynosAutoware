@@ -9,6 +9,7 @@ endif()
 
 find_package(
   catkin REQUIRED COMPONENTS
+    autoware_msgs
     autoware_can_msgs
     geometry_msgs
     jsk_recognition_msgs
