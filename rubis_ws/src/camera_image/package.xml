@@ -18,4 +18,5 @@
 <build_export_depend>rubis_lib</build_export_depend>
 <exec_depend>message_runtime</exec_depend>
 <exec_depend>rubis_lib</exec_depend>
+<depend>libopencv-dev</depend>
 </package>
