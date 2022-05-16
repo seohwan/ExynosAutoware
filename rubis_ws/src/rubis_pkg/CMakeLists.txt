@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   gnss
   rubis_lib
   rubis_msgs
+  visualization_msgs
 )
 
 catkin_package(
