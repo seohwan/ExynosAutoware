@@ -85,7 +85,7 @@ def update_branch(branch_name, src_path):
     os.system('cp -r '+src_path+'/* .'+null_command)
     os.system('git add -A'+null_command)
     os.system('git commit -m \"Updated at +'+str(datetime.now())+'\"'+null_command)
-    os.system('git push origin '+branch_name+null_command)
+    os.system('git push --force origin '+branch_name+null_command)
     
     return
 
