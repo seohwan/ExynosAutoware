@@ -31,6 +31,6 @@
 <depend>roscpp</depend>
 <depend>tf</depend>
 <depend>gnss</depend>
-<dpened>rubis_lib</depend>
+<depend>rubis_lib</depend>
 
 </package>
