@@ -24,7 +24,7 @@
   <exec_depend>rubis_msgs</exec_depend>
   <exec_depend>tf</exec_depend>
   <exec_depend>can_data_msgs</exec_depend>
-  <depend>message_filters</depends>
+  <depend>message_filters</depend>
   <depend>geometry_msgs</depend>
   <depend>inertiallabs_msgs</depend>
   <depend>eigen</depend>
