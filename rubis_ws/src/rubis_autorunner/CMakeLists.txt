@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   autoware_msgs
   visualization_msgs
+  nmea_msgs
 )
 
 catkin_package(
