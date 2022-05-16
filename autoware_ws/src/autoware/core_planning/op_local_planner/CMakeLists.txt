@@ -24,6 +24,7 @@ find_package(
     tf
     vector_map_msgs
     rubis_lib
+    nav_msgs
 )
 
 find_package(PkgConfig REQUIRED)
