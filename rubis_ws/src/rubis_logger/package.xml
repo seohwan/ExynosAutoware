@@ -15,5 +15,4 @@
   <depend>roscpp</depend>
   <depend>can_data_msgs</depend>
   <depend>rubis_logger_msgs</depend>
-  <depend>nav_msgs</depend>
 </package>
