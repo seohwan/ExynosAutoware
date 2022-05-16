@@ -24,8 +24,6 @@ find_package(catkin REQUIRED COMPONENTS
   tf
 )
 
-find_package(OpenCV REQUIRED)
-
 find_package(Eigen3 REQUIRED)
 set(EIGEN_PACKAGE EIGEN3)
 if(NOT EIGEN3_FOUND)
