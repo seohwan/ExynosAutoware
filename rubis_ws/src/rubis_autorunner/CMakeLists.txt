@@ -10,6 +10,7 @@ find_package(catkin REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   autoware_msgs
+  visualization_msgs
 )
 
 catkin_package(
