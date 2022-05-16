@@ -28,6 +28,7 @@
 #include <rubis_msgs/TwistStamped.h>
 #include <rubis_lib/sched.hpp>
 
+
 namespace twist_filter_node
 {
 class TwistFilterNode
