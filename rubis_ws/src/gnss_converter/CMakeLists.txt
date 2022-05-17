@@ -29,6 +29,7 @@ if(NOT EIGEN3_FOUND)
   set(EIGEN_PACKAGE Eigen)
 endif()
 
+find_package(OpenCV REQUIRED)
 
 catkin_package(
 #  INCLUDE_DIRS include
@@ -40,6 +41,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 
