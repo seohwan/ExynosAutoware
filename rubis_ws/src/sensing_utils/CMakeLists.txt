@@ -56,3 +56,19 @@ add_dependencies(yaw_offset_calculator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${cat
 target_link_libraries(yaw_offset_calculator
   ${catkin_LIBRARIES}
 )
+
+install(
+  TARGETS
+    odom_converter
+    quaternion_to_rpy
+    ins_sync_test
+    yaw_offset_calculator
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+  PATTERN ".svn" EXCLUDE
+)

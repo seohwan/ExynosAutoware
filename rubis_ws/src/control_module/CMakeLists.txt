@@ -40,3 +40,22 @@ target_link_libraries(control_module
 )
 # add_dependencies(control_module ${catkin_EXPORTED_TARGETS} ${${my_package}_EXPORTED_TARGETS})
 add_dependencies(control_module ${${my_package}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
+
+install(
+  TARGETS
+    twist_converter
+    control_module
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY include/
+  DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
+  PATTERN ".svn" EXCLUDE
+)
+
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+  PATTERN ".svn" EXCLUDE
+)

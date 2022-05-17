@@ -101,3 +101,30 @@ add_dependencies(rubis_pose_relay ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_E
 target_link_libraries(rubis_pose_relay
   ${catkin_LIBRARIES}
 )
+
+install(
+  TARGETS
+    lidar_republisher
+    camera_republisher
+    gnss_republisher
+    gnss_localizer
+    fake_current_pose
+    fake_traffic_signal_generator
+    rubis_pose_relay
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY include/
+  DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
+  PATTERN ".svn" EXCLUDE
+)
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+  PATTERN ".svn" EXCLUDE
+)
+
+install(DIRECTORY cfg/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/cfg
+)

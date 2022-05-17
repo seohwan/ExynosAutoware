@@ -60,3 +60,21 @@ target_link_libraries(camera_image_sub
   #add by Park
   ${OpenCV_LIBS}
 )
+
+install(
+  TARGETS
+    camera_image
+    camera_image_sub
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+  PATTERN ".svn" EXCLUDE
+)
+
+# install(DIRECTORY cfg/
+#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/cfg
+# )

@@ -115,3 +115,31 @@ target_link_libraries(rubis_testbed_autorunner
   ${catkin_LIBRARIES}
   ros_autorunner_lib
 )
+
+install(
+  TARGETS
+    ros_autorunner_lib
+    lgsvl_triple_lidar_autorunner
+    desktop_lane_keeping
+    minicar_lane_keeping
+    cubetown_autorunner
+    cubetown_autorunner_gpu
+    tutorial_autorunner
+    rubis_testbed_autorunner
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY include/
+  DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
+  PATTERN ".svn" EXCLUDE
+)
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+  PATTERN ".svn" EXCLUDE
+)
+
+install(DIRECTORY cfg/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/cfg
+)
