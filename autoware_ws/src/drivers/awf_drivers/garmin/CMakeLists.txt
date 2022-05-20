@@ -3,7 +3,7 @@ project(garmin)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-find_package(autoware_build_flags REQUIRED)
+
 find_package(catkin REQUIRED COMPONENTS
   nmea_msgs
   roscpp

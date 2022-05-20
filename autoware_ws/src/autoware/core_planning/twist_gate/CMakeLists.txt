@@ -5,11 +5,10 @@ if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
   add_definitions(-D__aarch64__)
 endif()
 
-find_package(autoware_build_flags REQUIRED)
+
 find_package(
   catkin REQUIRED COMPONENTS
     autoware_config_msgs
-    autoware_health_checker
     autoware_msgs
     geometry_msgs
     ros_observer
@@ -45,16 +44,3 @@ install(
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-
-if(CATKIN_ENABLE_TESTING)
-  roslint_add_test()
-  find_package(rostest REQUIRED)
-  add_rostest_gtest(
-    test-twist_gate
-    test/test_twist_gate.test
-    test/src/test_twist_gate.cpp
-    src/twist_gate.cpp
-  )
-  add_dependencies(test-twist_gate ${catkin_EXPORTED_TARGETS})
-  target_link_libraries(test-twist_gate ${catkin_LIBRARIES})
-endif()

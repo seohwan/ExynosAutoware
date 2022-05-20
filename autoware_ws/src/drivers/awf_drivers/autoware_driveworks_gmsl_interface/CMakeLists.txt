@@ -15,7 +15,7 @@ if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64"
     set(DRIVEWORKS_LINKER_FLAGS "-Wl,-undefined,dynamic_lookup")
   endif()
 
-  find_package(autoware_build_flags REQUIRED)
+  
   find_package(catkin REQUIRED COMPONENTS
     camera_info_manager
     cv_bridge

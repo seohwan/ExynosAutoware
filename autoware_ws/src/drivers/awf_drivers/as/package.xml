@@ -8,7 +8,7 @@
   <author email="antm678@ertl.jp">T.Ando</author>
   <license>Apache 2</license>
 
-  <buildtool_depend>autoware_build_flags</buildtool_depend>
+
   <buildtool_depend>catkin</buildtool_depend>
 
   <depend>automotive_navigation_msgs</depend>

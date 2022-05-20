@@ -3,7 +3,7 @@ project(autoware_driveworks_interface)
 
 set(CMAKE_CXX_FLAGS "-O2 -s  -Wno-error=unused-parameter")
 
-find_package(autoware_build_flags REQUIRED)
+
 
 find_package(catkin REQUIRED COMPONENTS
   autoware_msgs

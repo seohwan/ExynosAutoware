@@ -8,7 +8,7 @@
   <author email="yukky@ubi.cs.ritsumei.ac.jp">Yukihiro Saito</author>
   <license>BSD</license>
 
-  <buildtool_depend>autoware_build_flags</buildtool_depend>
+
   <buildtool_depend>catkin</buildtool_depend>
 
   <depend>roscpp</depend>

@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(libwaypoint_follower)
 
-find_package(autoware_build_flags)
-
 find_package(catkin REQUIRED COMPONENTS
   amathutils_lib
   autoware_msgs

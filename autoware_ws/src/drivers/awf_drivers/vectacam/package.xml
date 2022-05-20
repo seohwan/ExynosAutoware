@@ -6,7 +6,7 @@
   <maintainer email="abrahammonrroy@yahoo.com">Abraham Monrroy</maintainer>
   <license>Apache 2</license>
 
-  <buildtool_depend>autoware_build_flags</buildtool_depend>
+
   <buildtool_depend>catkin</buildtool_depend>
 
   <depend>cv_bridge</depend>
