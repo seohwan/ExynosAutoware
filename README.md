@@ -23,6 +23,11 @@ The RUBIS Autoware project for Exynos Board.
 - `yotcto_tools/move_recipes.sh`
     * Move compresed recipes(`recipes.zip`) to `recipes-autoware`. Shoud launch it in `yocto_tools` after recipe creation.
 
+# How to run ssh with source shell script
+```
+ssh -t root@<ip> ' PROMPT_COMMAND=\"source <shell-script-in-server>\" exec sh'
+```
+
 # TODO
 * Need to create opencl based `ndt_gpu` and `vision_darknet_detect` packages.
 * Need to change paths in scritps for the ExynosAutoware project.
