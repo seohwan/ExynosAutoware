@@ -173,11 +173,11 @@ def main():
     recipe_version = "1.0" # Version of recipes
     
     # Create recipes for autoware.ai    
-    autoware.ai_path = 'autoware.ai/src'
-    cateogries = get_dirs(autoware.ai_path)
+    autoware_path = 'autoware.ai/src'
+    cateogries = get_dirs(autoware_path)
     
     for category in cateogries:
-        category_path = os.path.join(autoware.ai_path, category)
+        category_path = os.path.join(autoware_path, category)
         package_groups = get_dirs(category_path)
         for package_group in package_groups:
             package_group_path = os.path.join(category_path, package_group)
