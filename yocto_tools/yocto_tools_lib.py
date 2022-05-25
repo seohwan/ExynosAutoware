@@ -47,13 +47,13 @@ def move_to_top():
     return
 
 def copy_source_codes():
-    os.system('cp -r autoware_ws ..')
+    os.system('cp -r autoware.ai ..')
     os.system('cp -r rubis_ws ..')
     print('Source codes are copied to ExynosAutoware/..')
     return
 
 def remove_copied_source_codes():
-    os.system('sudo rm -r ../autoware_ws')
+    os.system('sudo rm -r ../autoware.ai')
     os.system('sudo rm -r ../rubis_ws')
     return
 
