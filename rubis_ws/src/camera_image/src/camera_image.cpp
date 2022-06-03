@@ -42,7 +42,7 @@ public:
     }
 
     void sendImage(); // image 퍼블리시
-    std::string createTopicName();// topic이름 생성
+    void createTopicName();// topic이름 생성
 
 private:
     int camera_id;
@@ -127,7 +127,7 @@ void CameraImage::sendImage(){
     }
 }
 
-std::string CameraImage::createTopicName(){
+void CameraImage::createTopicName(){
     topic_name =  "/cam"+ to_string(camera_id) +"/raw_image";
 }
 
