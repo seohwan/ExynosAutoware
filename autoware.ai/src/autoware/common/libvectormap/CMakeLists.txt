@@ -69,7 +69,3 @@ install(DIRECTORY include/${PROJECT_NAME}/
 
 set(ROSLINT_CPP_OPTS "--filter=-build/c++14,-runtime/references")
 roslint_cpp()
-
-if(CATKIN_ENABLE_TESTING)
-  roslint_add_test()
-endif()
