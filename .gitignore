@@ -3,3 +3,4 @@ devel
 *.pyc
 .vscode
 yocto_tools/recipes
+DS_Store
