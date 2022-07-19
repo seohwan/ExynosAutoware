@@ -24,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(OpenMP)
 find_package(OpenCV REQUIRED)
+find_package(Eigen3 QUIET)
 
 set(CMAKE_CXX_FLAGS "-O2 -Wall ${CMAKE_CXX_FLAGS}")
 
@@ -58,8 +59,6 @@ add_executable(lidar_euclidean_cluster_detect
   nodes/lidar_euclidean_cluster_detect/cluster.cpp
 )
 
-find_package(Eigen3 QUIET)
-
 target_link_libraries(lidar_euclidean_cluster_detect
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
@@ -81,14 +80,18 @@ install(DIRECTORY include/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 )
 
-install(TARGETS
-  lidar_euclidean_cluster_detect
+install(TARGETS idar_euclidean_cluster_detect
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-install(DIRECTORY launch config
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  PATTERN ".svn" EXCLUDE
+)
+
+install(DIRECTORY config/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   PATTERN ".svn" EXCLUDE
 )
