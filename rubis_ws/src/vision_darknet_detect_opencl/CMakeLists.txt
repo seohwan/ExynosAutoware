@@ -97,6 +97,7 @@ target_include_directories(vision_darknet_detect_opencl_lib PRIVATE
   ${PROJECT_SOURCE_DIR}/darknet
   ${PROJECT_SOURCE_DIR}/darknet/src
   ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/CL
 )
 
 target_link_libraries(vision_darknet_detect_opencl_lib
@@ -126,6 +127,7 @@ target_include_directories(vision_darknet_detect_opencl PRIVATE
   ${PROJECT_SOURCE_DIR}/darknet
   ${PROJECT_SOURCE_DIR}/darknet/src
   ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/CL
 )
 
 target_link_libraries(vision_darknet_detect_opencl
