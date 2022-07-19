@@ -91,7 +91,7 @@ install(DIRECTORY launch/
   PATTERN ".svn" EXCLUDE
 )
 
-install(DIRECTORY autoware_config_msgs/
+install(DIRECTORY config/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   PATTERN ".svn" EXCLUDE
 )
