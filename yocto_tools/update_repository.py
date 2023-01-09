@@ -5,9 +5,12 @@ from yocto_tools_lib import *
 import subprocess
 
 def init():
-    os.system('git checkout master')
+    os.system('git checkout master')    
     move_to_top()
-    copy_source_codes()
+    null_command = ' > /dev/null 2>&1'
+    os.system('sudo rm -r ../autoware.ai'+null_command)
+    os.system('sudo rm -r ../rubis_ws'+null_command)
+    copy_source_codes()    
     return
 
 def main():
