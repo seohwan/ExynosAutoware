@@ -79,7 +79,7 @@ def create_branch(branch_name, src_path):
 def update_branch(branch_name, src_path):
     null_command = ' > /dev/null 2>&1'
     
-    os.system('git checkouf -f '+branch_name+null_command)
+    os.system('git checkout -f '+branch_name+null_command)
     os.system('git reset --hard'+null_command)
     os.system('sudo rm -r *'+null_command)
     os.system('cp -r '+src_path+'/* .'+null_command)
