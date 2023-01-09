@@ -21,7 +21,7 @@ The RUBIS Autoware project for Exynos Board.
 - `yocto_tools/create_recipes.py`
     * Create Yocto recipes to `yocto_tools/recipes` based on `autoware.ai` and `rubis_ws`.
 - `yotcto_tools/move_recipes.sh`
-    * Move compresed recipes(`recipes.zip`) to `recipes-autoware`. Shoud launch it in `yocto_tools` after recipe creation.
+    * Move autoware recipes to `recipes-autoware`. 
 
 # How to run ssh with source shell script
 ```
