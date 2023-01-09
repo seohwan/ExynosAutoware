@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from tqdm import tqdm
 from yocto_tools_lib import *
+import subprocess
 
 def init():
     os.system('git checkout master')
@@ -17,6 +18,7 @@ def main():
     # Update autoware.ai    
     autoware_path = '../autoware.ai/src'
     cateogries = get_dirs(autoware_path)
+    local_branches = str(subprocess.check_output('git branch', shell=True))
 
     for category in cateogries:
         category_path = os.path.join(autoware_path, category)
@@ -24,6 +26,10 @@ def main():
         for package_group in package_groups:
             package_group_path = os.path.join(category_path, package_group)
             packages = get_dirs(package_group_path)
+            for pkg in packages:
+                if pkg not in local_branches: os.system('git checkout --force '+pkg)
+            os.system('git checkout master')
+
             print('Update packages in autware.ai/src/'+category+'/'+package_group)
             
             pb = tqdm(range(len(packages))) # progress bar
@@ -42,6 +48,9 @@ def main():
     # Update rubis_ws
     rubis_ws_path = '../rubis_ws/src'
     packages = get_dirs(rubis_ws_path)
+    for pkg in packages:
+        if pkg not in local_branches: os.system('git checkout --force '+pkg)
+    os.system('git checkout master')
 
     print('Update packages in rubis_ws')
     pb = tqdm(range(len(packages)))
