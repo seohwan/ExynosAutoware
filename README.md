@@ -29,6 +29,4 @@ ssh -t root@<ip> ' PROMPT_COMMAND=\"source <shell-script-in-server>\" exec sh'
 ```
 
 # TODO
-* Need to create opencl based `ndt_gpu` and `vision_darknet_detect` packages.
-* Need to change paths in scritps for the ExynosAutoware project.
 * Need to create `range_vision_fusion` that don't use `jsk_recognition_utils`. (It can be resolved when `python-skimage` recipe is generated).
