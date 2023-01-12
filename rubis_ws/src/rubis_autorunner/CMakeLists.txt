@@ -32,11 +32,18 @@ add_library(ros_autorunner_lib
   src/ros_autorunner_lib/ros_autorunner.cpp
 )
 
-add_executable(cubetown_autorunner
+add_executable(cubetown_lkas_autorunner
   include/cubetown_autorunner/cubetown_autorunner.h
-  src/cubetown_autorunner/cubetown_autorunner_node.cpp
-  src/cubetown_autorunner/cubetown_autorunner.cpp
+  src/cubetown_autorunner/cubetown_lkas_autorunner_node.cpp
+  src/cubetown_autorunner/cubetown_lkas_autorunner.cpp
 )
+
+add_executable(cubetown_full_autorunner
+  include/cubetown_autorunner/cubetown_autorunner.h
+  src/cubetown_autorunner/cubetown_full_autorunner_node.cpp
+  src/cubetown_autorunner/cubetown_full_autorunner.cpp
+)
+
 
 add_executable(rubis_testbed_autorunner
   include/rubis_testbed_autorunner/rubis_testbed_autorunner.h
@@ -44,8 +51,14 @@ add_executable(rubis_testbed_autorunner
   src/rubis_testbed_autorunner/rubis_testbed_autorunner.cpp
 )
 
-add_dependencies(cubetown_autorunner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(cubetown_autorunner
+add_dependencies(cubetown_lkas_autorunner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(cubetown_lkas_autorunner
+  ${catkin_LIBRARIES}
+  ros_autorunner_lib
+)
+
+add_dependencies(cubetown_full_autorunner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(cubetown_full_autorunner
   ${catkin_LIBRARIES}
   ros_autorunner_lib
 )
@@ -59,7 +72,8 @@ target_link_libraries(rubis_testbed_autorunner
 install(
   TARGETS
     ros_autorunner_lib
-    cubetown_autorunner
+    cubetown_lkas_autorunner
+    cubetown_full_autorunner
     rubis_testbed_autorunner
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
