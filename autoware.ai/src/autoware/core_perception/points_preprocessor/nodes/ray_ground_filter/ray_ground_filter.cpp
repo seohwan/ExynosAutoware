@@ -467,7 +467,7 @@ void RayGroundFilter::Run()
       node_handle_.subscribe("/config/ray_ground_filter", 1, &RayGroundFilter::update_config_params, this);
 
   groundless_points_pub_ = node_handle_.advertise<rubis_msgs::PointCloud2>(no_ground_topic, 2);
-  // ground_points_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2>(ground_topic, 2);
+  ground_points_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2>(ground_topic, 2);
   
   std::string node_name = ros::this_node::getName();
   node_handle_.param<int>(node_name+"/task_scheduling_flag", task_scheduling_flag, 0);
