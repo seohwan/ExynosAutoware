@@ -18,7 +18,7 @@ for index in sorted(remove_idx, reverse=True):
     del exynos_autoware_paths[index]
 
 autoware_copy_src_paths = []
-for line in paths:
+for line in exynos_autoware_paths:
     autoware_copy_src_paths.append(line.replace('../','~/'))
 
 
@@ -38,7 +38,7 @@ for index in sorted(remove_idx, reverse=True):
     del exynos_rubis_paths[index]
 
 rubis_copy_src_paths = []
-for line in paths:
+for line in exynos_rubis_paths:
     rubis_copy_src_paths.append(line.replace('../','~/'))
 
 for i in range(len(remove_idx)):
