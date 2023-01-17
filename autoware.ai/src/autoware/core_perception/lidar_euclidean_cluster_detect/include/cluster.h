@@ -43,7 +43,7 @@
 
 #include <jsk_recognition_msgs/BoundingBox.h>
 #include <jsk_recognition_msgs/PolygonArray.h>
-// #include <jsk_rviz_plugins/PictogramArray.h>
+#include <jsk_rviz_plugins/PictogramArray.h>
 
 #include "autoware_msgs/CloudCluster.h"
 
@@ -53,6 +53,9 @@
 #include <limits>
 #include <cmath>
 #include <chrono>
+
+#include <rubis_lib/sched.hpp>
+
 
 class Cluster
 {

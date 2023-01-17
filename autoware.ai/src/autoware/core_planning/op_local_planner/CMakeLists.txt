@@ -26,6 +26,7 @@ find_package(
     vector_map_msgs
     rubis_lib
     nav_msgs
+    rubis_msgs
 )
 
 find_package(PkgConfig REQUIRED)

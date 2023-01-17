@@ -17,4 +17,5 @@
   <depend>tf</depend>
   <depend>vector_map</depend>
   <depend>rubis_lib</depend>
+  <depend>rubis_msgs</depend>
 </package>

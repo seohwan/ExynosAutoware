@@ -33,10 +33,14 @@
 #include <pcl/filters/extract_indices.h>
 #include <velodyne_pointcloud/point_types.h>
 #include "autoware_config_msgs/ConfigRayGroundFilter.h"
+#include "rubis_msgs/PointCloud2.h"
 
 #include <tf2/transform_datatypes.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_eigen/tf2_eigen.h>
+
+// headers in Autoware Health Checker
+#include <autoware_health_checker/health_checker/health_checker.h>
 
 #include <opencv2/core/version.hpp>
 
@@ -48,6 +52,7 @@
 class RayGroundFilter
 {
 private:
+  std::shared_ptr<autoware_health_checker::HealthChecker> health_checker_ptr_;
   ros::NodeHandle node_handle_;
   ros::Subscriber points_node_sub_;
   ros::Subscriber config_node_sub_;

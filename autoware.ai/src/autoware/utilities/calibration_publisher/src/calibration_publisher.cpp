@@ -69,9 +69,9 @@ void load_calibration_file(std::string calibration_file){
   DistCoeff.rows = calib["DistCoeff"]["rows"].as<int>();
   DistCoeff.cols = calib["DistCoeff"]["cols"].as<int>();  
   ImgSize = calib["ImageSize"].as<std::vector<int>>();
-  assert((int)CameraExtrinsicMat.data.size() == 16);
-  assert((int)CameraMat.data.size() == 9);
-  assert((int)DistCoeff.data.size() == 5);
+  assert((int)CameraExtrinsicMat.size() == 16);
+  assert((int)CameraMat.size() == 9);
+  assert((int)DistCoeff.size() == 5);
   assert((int)ImgSize.size() == 2);
   DistModel = "plumb_bob";  
 }

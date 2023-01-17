@@ -32,7 +32,12 @@ public:
     { 
         createTopicName();  
         if(DEBUG) std::cout<<"topic_name : "<<topic_name<<std::endl;
-        camera_image_pub_ = it_.advertise(topic_name,1);
+
+        /* Dynamic topic name */
+        // camera_image_pub_ = it_.advertise(topic_name,1);
+
+        /* Static topic name */
+        camera_image_pub_ = it_.advertise("/image_raw", 1); 
         cap.open(camera_id);
     }
 
@@ -42,7 +47,7 @@ public:
     }
 
     void sendImage(); // image 퍼블리시
-    void createTopicName();// topic이름 생성
+    std::string createTopicName();// topic이름 생성
 
 private:
     int camera_id;
@@ -111,6 +116,7 @@ void CameraImage::sendImage(){
             if(DEBUG) cv::imshow(OPENCV_WINDOW,frame);
 
             msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", frame).toImageMsg();
+            msg->header.frame_id="camera";
             camera_image_pub_.publish(msg);
             rubis::sched::is_task_ready_ = TASK_STATE_DONE;            
         }                        
@@ -127,8 +133,9 @@ void CameraImage::sendImage(){
     }
 }
 
-void CameraImage::createTopicName(){
-    topic_name =  "/cam"+ to_string(camera_id) +"/raw_image";
+std::string CameraImage::createTopicName(){
+    // topic_name =  "/cam"+ to_string(camera_id) +"/raw_image";
+    topic_name = "image_raw";
 }
 
 template < typename T > 

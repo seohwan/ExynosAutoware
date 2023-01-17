@@ -39,6 +39,8 @@
 #include <pure_pursuit/pure_pursuit.h>
 #include <pure_pursuit/pure_pursuit_viz.h>
 
+#include <autoware_health_checker/health_checker/health_checker.h>
+
 #include <vector>
 #include <memory>
 
@@ -88,6 +90,8 @@ private:
   // handle
   ros::NodeHandle nh_;
   ros::NodeHandle private_nh_;
+
+  std::shared_ptr<autoware_health_checker::HealthChecker> health_checker_ptr_;
 
   // class
   PurePursuit pp_;
@@ -182,5 +186,9 @@ inline double kmph2mps(double velocity_kmph)
 }
 
 }  // namespace waypoint_follower
+
+#ifdef USE_WAYPOINT_ORIENTATION
+static geometry_msgs::PoseStamped waypoint_pose_;
+#endif
 
 #endif  // PURE_PURSUIT_PURE_PURSUIT_CORE_H

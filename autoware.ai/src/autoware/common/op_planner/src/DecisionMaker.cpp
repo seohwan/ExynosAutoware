@@ -628,16 +628,10 @@ bool DecisionMaker::SelectSafeTrajectory()
     else
       desiredVelocity = forward_pid_vel;
 
-
-    if(desiredVelocity>max_velocity)
-      desiredVelocity = max_velocity;
-    else if(desiredVelocity < m_params.minSpeed)
-      desiredVelocity = 0;
-
     if(m_params.enableSlowDownOnCurve){
       GPSPoint curr_point = m_Path.at(info.iFront).pos; // current waypoint (p1)
       GPSPoint near_point = m_Path.at(std::min(info.iFront + 3, int(m_Path.size())-1)).pos; // waypoint after 1.5m (p2)
-      GPSPoint far_point = m_Path.at(std::min(info.iFront + 60, int(m_Path.size())-1)).pos; // waypoint afeter 30m (p3)
+      GPSPoint far_point = m_Path.at(std::min(info.iFront + 100, int(m_Path.size())-1)).pos; // waypoint afeter 50m (p3)
 
       double deg_1 = atan2((near_point.y - curr_point.y), (near_point.x - curr_point.x)) / 3.14 * 180;
       double deg_2 = atan2((far_point.y - curr_point.y), (far_point.x - curr_point.x)) / 3.14 * 180;
@@ -673,8 +667,8 @@ bool DecisionMaker::SelectSafeTrajectory()
         desiredVelocity = m_params.maxSpeed;
       }
 
-      if(desiredVelocity < m_params.maxSpeed * 0.5){ // minimum of target velocity is max_speed / 2
-        desiredVelocity = m_params.maxSpeed * 0.5; 
+      if(desiredVelocity < m_params.maxSpeed * m_params.curveVelocityRatio){ // minimum of target velocity is max_speed / 2
+        desiredVelocity = m_params.maxSpeed * m_params.curveVelocityRatio; 
       }
       previous_velocity = desiredVelocity;
     }
@@ -686,6 +680,11 @@ bool DecisionMaker::SelectSafeTrajectory()
     // std::cout << "desiredVelocity : " << desiredVelocity << std::endl;
 
     // std::cout << "Target Velocity: " << target_velocity << ", desired : " << desiredVelocity << ", Change Slowdown: " << bSlowBecauseChange  << std::endl;
+
+    if(desiredVelocity>max_velocity)
+      desiredVelocity = max_velocity;
+    else if(desiredVelocity < m_params.minSpeed)
+      desiredVelocity = 0;
 
     return desiredVelocity;
   }
@@ -757,8 +756,11 @@ bool DecisionMaker::SelectSafeTrajectory()
 
   CalculateImportantParameterForDecisionMaking(vehicleState, goalID, bEmergencyStop, trafficLight, tc);
 
-  CheckTurn();
+  // Enable if left turn scenario needed
+  // CheckTurn();
+
   // PrintTurn();
+
   beh = GenerateBehaviorState(vehicleState);
 
   beh.bNewPlan = SelectSafeTrajectory();

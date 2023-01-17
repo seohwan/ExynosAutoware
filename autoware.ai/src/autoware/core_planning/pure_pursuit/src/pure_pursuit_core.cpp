@@ -45,6 +45,9 @@ PurePursuitNode::PurePursuitNode()
   , minimum_lookahead_distance_(6.0)
 {
   initForROS();
+  health_checker_ptr_ =
+    std::make_shared<autoware_health_checker::HealthChecker>(nh_, private_nh_);
+  health_checker_ptr_->ENABLE();
   // initialize for PurePursuit
   pp_.setLinearInterpolationParameter(is_linear_interpolation_);
 }
@@ -265,6 +268,9 @@ void PurePursuitNode::run()
 
     publishTwistStamped(can_get_curvature, kappa);
     publishControlCommandStamped(can_get_curvature, kappa);
+    health_checker_ptr_->NODE_ACTIVATE();
+    health_checker_ptr_->CHECK_RATE("topic_rate_vehicle_cmd_slow", 8, 5, 1,
+      "topic vehicle_cmd publish rate slow.");
     // for visualization with Rviz
     pub11_.publish(displayNextWaypoint(pp_.getPoseOfNextWaypoint()));
     pub13_.publish(displaySearchRadius(
@@ -450,7 +456,15 @@ void PurePursuitNode::publishDeviationCurrentPosition(
 }
 
 inline void PurePursuitNode::updateCurrentPose(const geometry_msgs::PoseStampedConstPtr& msg){
+#ifndef USE_WAYPOINT_ORIENTATION
   pp_.setCurrentPose(msg);
+#else
+  geometry_msgs::PoseStamped updated_msg;
+  updated_msg = *msg;
+  updated_msg.pose.orientation = waypoint_pose_.pose.orientation;
+
+  pp_.setCurrentPose(updated_msg);
+#endif
   is_pose_set_ = true;
 }
 
@@ -561,6 +575,10 @@ void PurePursuitNode::callbackFromWayPoints(
     pp_.setCurrentWaypoints(msg->waypoints);
   }
   is_waypoint_set_ = true;
+
+#ifdef USE_WAYPOINT_ORIENTATION
+  waypoint_pose_ = msg->waypoints[0].pose;
+#endif
 }
 
 void PurePursuitNode::connectVirtualLastWaypoints(

@@ -26,4 +26,5 @@
   <depend>yaml-cpp</depend>
   <depend>rubis_lib</depend>
   <depend>nav_msgs</depend>
+  <depend>rubis_msgs</depend>
 </package>

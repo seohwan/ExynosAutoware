@@ -18,7 +18,7 @@
 
 namespace twist_filter_node
 {
-TwistFilterNode::TwistFilterNode() : nh_(), private_nh_("~")
+TwistFilterNode::TwistFilterNode() : nh_(), private_nh_("~"), health_checker_(nh_, private_nh_)
 {
   // Parameters
   twist_filter::Configuration twist_filter_config;
@@ -33,6 +33,9 @@ TwistFilterNode::TwistFilterNode() : nh_(), private_nh_("~")
   twist_filter_ptr_ = std::make_shared<twist_filter::TwistFilter>(twist_filter_config);
   emergency_stop_ = false;
   current_stop_count_ = 0;
+
+  // Enable health checker
+  health_checker_.ENABLE();
 
   // Subscribe
   if(rubis::instance_mode_) rubis_twist_sub_ = nh_.subscribe("rubis_twist_raw", 1, &TwistFilterNode::rubisTwistCmdCallback, this);
@@ -82,6 +85,7 @@ inline void TwistFilterNode::publishTwist(const geometry_msgs::TwistStampedConst
 
   double time_elapsed = (current_time - last_callback_time).toSec();
 
+  health_checker_.NODE_ACTIVATE();
   checkTwist(twist, twist_prev, time_elapsed);
 
   twist_filter::Twist twist_out = twist;
@@ -119,7 +123,7 @@ inline void TwistFilterNode::publishTwist(const geometry_msgs::TwistStampedConst
     out_msg.twist.angular.z = twist_out.az;
   }
   else{
-    out_msg.twist.linear.x = 0;
+    out_msg.twist.linear.x = -1000;
     out_msg.twist.angular.z = 0;
   }
   twist_pub_.publish(out_msg);
@@ -177,6 +181,7 @@ void TwistFilterNode::ctrlCmdCallback(const autoware_msgs::ControlCommandStamped
 
   double time_elapsed = (current_time - last_callback_time).toSec();
 
+  health_checker_.NODE_ACTIVATE();
   checkCtrl(ctrl, ctrl_prev, time_elapsed);
 
   twist_filter::Ctrl ctrl_out = ctrl;
@@ -211,6 +216,9 @@ void TwistFilterNode::ctrlCmdCallback(const autoware_msgs::ControlCommandStamped
   autoware_msgs::ControlCommandStamped out_msg = *msg;
   out_msg.cmd.linear_velocity = ctrl_out.lv;
   out_msg.cmd.steering_angle = ctrl_out.sa;
+
+  if(emergency_stop_) out_msg.cmd.linear_velocity = -1000;
+
   ctrl_pub_.publish(out_msg);
 
   // Publish lateral accel and jerk after smoothing
@@ -266,6 +274,19 @@ void TwistFilterNode::checkTwist(const twist_filter::Twist twist, const twist_fi
   const auto ljerk = twist_filter_ptr_->calcLjerkWithAngularZ(twist, twist_prev, dt);
 
   const twist_filter::Configuration& config = twist_filter_ptr_->getConfiguration();
+
+  if (lacc)
+  {
+    health_checker_.CHECK_MAX_VALUE("twist_lateral_accel_high", lacc.get(), config.lateral_accel_limit,
+                                    2 * config.lateral_accel_limit, DBL_MAX,
+                                    "lateral_accel is too high in twist filtering");
+  }
+  if (ljerk)
+  {
+    health_checker_.CHECK_MAX_VALUE("twist_lateral_jerk_high", lacc.get(), config.lateral_jerk_limit,
+                                    2 * config.lateral_jerk_limit, DBL_MAX,
+                                    "lateral_jerk is too high in twist filtering");
+  }
 }
 
 void TwistFilterNode::checkCtrl(const twist_filter::Ctrl ctrl, const twist_filter::Ctrl ctrl_prev, const double& dt)
@@ -274,6 +295,19 @@ void TwistFilterNode::checkCtrl(const twist_filter::Ctrl ctrl, const twist_filte
   const auto ljerk = twist_filter_ptr_->calcLjerkWithSteeringAngle(ctrl, ctrl_prev, dt);
 
   const twist_filter::Configuration& config = twist_filter_ptr_->getConfiguration();
+
+  if (lacc)
+  {
+    health_checker_.CHECK_MAX_VALUE("ctrl_lateral_accel_high", lacc.get(), config.lateral_accel_limit,
+                                    3 * config.lateral_accel_limit, DBL_MAX,
+                                    "lateral_accel is too high in ctrl filtering");
+  }
+  if (ljerk)
+  {
+    health_checker_.CHECK_MAX_VALUE("ctrl_lateral_jerk_high", lacc.get(), config.lateral_jerk_limit,
+                                    3 * config.lateral_jerk_limit, DBL_MAX,
+                                    "lateral_jerk is too high in ctrl filtering");
+  }
 }
 
 }  // namespace twist_filter_node
