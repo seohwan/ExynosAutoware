@@ -15,7 +15,7 @@ for i, line in enumerate(exynos_autoware_paths):
         remove_idx.append(i)
 
 for index in sorted(remove_idx, reverse=True):
-    del paths[index]
+    del exynos_autoware_paths[index]
 
 autoware_copy_src_paths = []
 for line in paths:
@@ -35,7 +35,7 @@ for i, line in enumerate(exynos_rubis_paths):
     if 'CMakeList' in line or 'package.xml' in line or '.launch' in line: remove_idx.append(i)
 
 for index in sorted(remove_idx, reverse=True):
-    del paths[index]
+    del exynos_rubis_paths[index]
 
 rubis_copy_src_paths = []
 for line in paths:
