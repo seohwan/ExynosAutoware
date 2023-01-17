@@ -1,6 +1,13 @@
 import os
 import subprocess
 
+if not os.path.exists('~/autoware.ai/src'):
+    print('[ERROR] Autoware target should be located in ~/autoware.ai')
+    exit()
+if not os.path.exists('~/rubis_ws/src'):
+    print('[ERROR] rubis arget should be located in ~/autoware.ai')
+    exit()
+
 # Autoware
 paths = str(os.popen('find ../autoware.ai/src ').read())
 exynos_autoware_paths = paths.split('\n')
