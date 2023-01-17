@@ -26,6 +26,8 @@
   <node pkg="imm_ukf_pda_track" type="imm_ukf_pda" name="imm_ukf_pda_$(arg label)" output="screen">
     <param name="tracker_input_topic" value="$(arg tracker_input_topic)" />
     <param name="tracker_output_topic" value="$(arg tracker_output_topic)" />
+    <param name="tracker_input_rubis_topic" value="$(arg tracker_input_rubis_topic)" />
+    <param name="tracker_output_rubis_topic" value="$(arg tracker_output_rubis_topic)" />
     <param name="gating_threshold" value="$(arg gating_threshold)" />
     <param name="gate_probability" value="$(arg gate_probability)" />
     <param name="detection_probability" value="$(arg detection_probability)" />
@@ -39,7 +41,7 @@
     <param name="vectormap_frame" value="$(arg vectormap_frame)" />
     <param name="use_sukf" value="$(arg use_sukf)" />
     <param name="use_vectormap" value="$(arg use_map_info)" />
-    <param name="merge_distance_threshold" value="$(arg merge_distance_threshold)" />
+    <param name="merge_distance_threshold" value="$(arg merge_distance_threshold)"
 
     <!-- <remap from="detection/fusion_tools/objects_$(arg label)" to="$(arg tracker_input_topic)_$(arg label)" />
     <remap from="detection/objects_$(arg label)" to="$(arg tracker_output_topic)_$(arg label)" /> -->
