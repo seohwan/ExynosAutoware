@@ -414,7 +414,8 @@ void TrajectoryEval::callbackGetRubisPredictedObjects(const rubis_msgs::Detected
 
   int vehicle_cnt = 0;
 
-  PlannerHNS::DetectedObject obj;
+  PlannerHNS::DetectedObject obj;  
+
   for(unsigned int i = 0 ; i <msg->object_array.objects.size(); i++)
   {    
     if(msg->object_array.objects.at(i).pose.position.y < -20 || msg->object_array.objects.at(i).pose.position.y > 20)
@@ -463,7 +464,7 @@ void TrajectoryEval::callbackGetRubisPredictedObjects(const rubis_msgs::Detected
         m_vtom_listener.transformPose("/map", contour_point_in_map, contour_point_in_map);
       }
       catch(tf::TransformException& ex){
-        // ROS_ERROR("Cannot transform contour pose: %s", ex.what());
+        ROS_ERROR("Cannot transform contour pose: %s", ex.what());
         continue;
       }
 
@@ -488,6 +489,8 @@ void TrajectoryEval::callbackGetRubisPredictedObjects(const rubis_msgs::Detected
     }
     
   }
+  std::cout<<"@@@ object_array size: "<<msg->object_array.objects.size()<<std::endl;
+  std::cout<<"@@@ m_PredictedObjects size: "<<m_PredictedObjects.size()<<std::endl;
 
   // Publish Sprint Switch
   std_msgs::Bool sprint_switch_msg;
