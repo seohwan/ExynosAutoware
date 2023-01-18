@@ -46,6 +46,31 @@ ndt_matching:
   gpu_response_time_filename: "~/Documents/gpu_profiling/test_ndt_matching_response_time.csv"
   gpu_deadline_filename: "~/Documents/gpu_deadline/ndt_matching_gpu_deadline.csv"
 
+modular_ndt_matching_CENTER:
+  instance_mode: 1
+  use_kalman_filter: True
+
+  tf_x: 1.0510799 
+  tf_y: 0
+  tf_z: 1.96
+  tf_roll: 0
+  tf_pitch: 0
+  tf_yaw: 0
+  localizer: "velodyne"
+
+  task_scheduling_flag: 0
+  task_profiling_flag: 1
+  task_response_time_filename: "~/Documents/profiling/response_time/ndt_matching.csv"
+  rate: 10
+  task_minimum_inter_release_time: 100_000_000
+  task_execution_time: 80_000_000
+  task_relative_deadline: 80_000_000
+  gpu_scheduling_flag: 0
+  gpu_profiling_flag: 0
+  gpu_execution_time_filename: "~/Documents/gpu_profiling/test_ndt_matching_execution_time.csv"
+  gpu_response_time_filename: "~/Documents/gpu_profiling/test_ndt_matching_response_time.csv"
+  gpu_deadline_filename: "~/Documents/gpu_deadline/ndt_matching_gpu_deadline.csv"
+
 # Detection
 ray_ground_filter_center:
   task_scheduling_flag: 0
@@ -71,10 +96,10 @@ lidar_euclidean_cluster_detect:
   gpu_response_time_filename: "~/Documents/gpu_profiling/test_clustering_response_time.csv"
   gpu_deadline_filename: "~/Documents/gpu_deadline/clustering_gpu_deadline.csv"
 
-vision_darknet_detect_opencl:
+vision_darknet_detect:
   task_scheduling_flag: 0
   task_profiling_flag: 1
-  task_response_time_filename: "~/Documents/profiling/response_time/vision_darknet_detect_opencl.csv"
+  task_response_time_filename: "~/Documents/profiling/response_time/vision_darknet_detect.csv"
   rate: 10
   task_minimum_inter_release_time: 100_000_000
   task_execution_time: 75_000_000
@@ -84,8 +109,8 @@ vision_darknet_detect_opencl:
   gpu_execution_time_filename: "~/Documents/gpu_profiling/test_yolo_execution_time.csv"
   gpu_response_time_filename: "~/Documents/gpu_profiling/test_yolo_response_time.csv"
   gpu_deadline_filename: "~/Documents/gpu_deadline/yolo_gpu_deadline.csv"
-  network_definition_file: "/opt/ros/melodic/vision_darknet_detect_opencl/darknet/cfg/yolov3-320.cfg"
-  pretrained_model_file: "/opt/ros/melodic/vision_darknet_detect_opencl/darknet/data/yolov3-320.weights"
+  network_definition_file: "~/autoware.ai/autoware_files/vision/yolov3-320.cfg"
+  pretrained_model_file: "~/autoware.ai/autoware_files/vision/yolov3-320.weights"
 
 imm_ukf_pda_track:
   task_scheduling_flag: 0
@@ -108,8 +133,8 @@ op_global_planner:
   multilap_flag: 1
 
 op_common_params:
-  rollOutDensity: 4
-  rollOutsNumber: 1
+  rollOutDensity: 2
+  rollOutsNumber: 4
   maxVelocity: 10.0
   maxAcceleration: 10.0
   maxDeceleration: -10.0
@@ -131,10 +156,10 @@ op_trajectory_evaluator:
   task_minimum_inter_release_time: 100_000_000
   task_execution_time: 3_600_000
   task_relative_deadline: 100_000_000
-  weightPriority: 0
-  weightTransition: 5
-  weightLong: 4
-  weightLat: 4
+  weightPriority: 1
+  weightTransition: 0.5
+  weightLong: 10
+  weightLat: 10
   ImageWidth: 1920
   ImageHeight: 1080
   SprintDecisionTime: 9999999.0
@@ -204,25 +229,6 @@ lidar_republisher:
   rate: 10
   task_minimum_inter_release_time: 100_000_000
   task_execution_time: 70_000_000
-  task_relative_deadline: 100_000_000
-
-vel_relay:
-  task_scheduling_flag: 0
-  task_profiling_flag: 1
-  task_response_time_filename: "~/Documents/profiling/response_time/vel_relay.csv"
-  rate: 10
-  task_minimum_inter_release_time: 100_000_000
-  task_execution_time: 300_000
-  task_relative_deadline: 100_000_000
-
-pose_relay:
-  instance_mode: 1
-  task_scheduling_flag: 0
-  task_profiling_flag: 1
-  task_response_time_filename: "~/Documents/profiling/response_time/pose_relay.csv"
-  rate: 10
-  task_minimum_inter_release_time: 100_000_000
-  task_execution_time: 300_000
   task_relative_deadline: 100_000_000
 
 republish:
