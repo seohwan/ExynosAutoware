@@ -13,12 +13,15 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   DIRECTORY msg
   FILES
-    DetectedObjectArray.msg
     PointCloud2.msg
     PoseStamped.msg
     TwistStamped.msg
     VehicleCmd.msg
     InsStat.msg
+    PoseTwistStamped.msg
+    LaneWithPoseTwist.msg
+    LaneArrayWithPoseTwist.msg
+    DetectedObjectArray.msg
 )
 
 generate_messages(
