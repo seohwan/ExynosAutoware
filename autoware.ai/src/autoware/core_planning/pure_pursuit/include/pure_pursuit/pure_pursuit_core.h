@@ -44,8 +44,6 @@
 
 #include <XmlRpcException.h>
 
-#include "rubis_msgs/LaneWithPoseTwist.h"
-
 #ifdef IONIC
 #include <can_data_msgs/Car_ctrl_output.h>
 #endif
@@ -99,7 +97,7 @@ private:
     pub11_, pub12_, pub13_, pub14_, pub15_, pub16_, pub17_, pub18_;
 
   // subscriber
-  ros::Subscriber sub1_, sub3_, final_waypoints_with_pose_twist_sub, car_ctrl_output_sub;
+  ros::Subscriber sub1_, pose_sub_, rubis_pose_sub_, sub3_, velocity_sub_, car_ctrl_output_sub;
 
   // constant
   const int LOOP_RATE_;  // processing frequency
@@ -126,14 +124,18 @@ private:
 
   // Added by PHY
   bool dynamic_param_flag_;
-  int task_profiling_flag_ = 1;
   std::vector<DynamicParams> dynamic_params;
 
   // callbacks
   void callbackFromConfig(
     const autoware_config_msgs::ConfigWaypointFollowerConstPtr& config);
+  void callbackFromCurrentPose(const geometry_msgs::PoseStampedConstPtr& msg);
+  void callbackFromRubisCurrentPose(const rubis_msgs::PoseStampedConstPtr& _msg);
   void callbackFromWayPoints(const autoware_msgs::LaneConstPtr& msg);
-  void CallbackFinalWaypointsWithPoseTwist(const rubis_msgs::LaneWithPoseTwistConstPtr& msg);
+
+  #ifdef SVL
+  void callbackFromCurrentVelocity(const geometry_msgs::TwistStampedConstPtr& msg);
+  #endif
 
   #ifdef IONIC
   void callbackCtrlOutput(const can_data_msgs::Car_ctrl_output::ConstPtr &msg);
@@ -158,7 +160,7 @@ private:
     const std::vector<autoware_msgs::Waypoint>& waypoints) const;
   void connectVirtualLastWaypoints(
     autoware_msgs::Lane* expand_lane, LaneDirection direction);
-  inline void updateCurrentPose(geometry_msgs::PoseStampedConstPtr& msg);
+  inline void updateCurrentPose(const geometry_msgs::PoseStampedConstPtr& msg);
   
   // Added by PHY
   void setLookaheadParamsByVel();
