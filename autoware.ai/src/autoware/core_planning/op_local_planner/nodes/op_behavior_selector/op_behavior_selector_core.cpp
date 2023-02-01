@@ -769,7 +769,12 @@ void BehaviorGen::MainLoop()
 
   m_sprintSwitch = false;
 
-  ros::spin();
+  ros::Rate r(rate);
+  while (ros::ok())
+  {
+    ros::spinOnce();
+    r.sleep();
+  }
 }
 
 bool BehaviorGen::GetBaseMapTF(){
