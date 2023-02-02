@@ -168,7 +168,7 @@ void PurePursuitNode::initForROS()
 
   // setup subscriber
   pose_twist_sub_ = nh_.subscribe("/rubis_current_pose_twist", 1, &PurePursuitNode::CallbackTwistPose, this);
-  final_waypoints_with_pose_twist_sub = nh_.subscribe("/final_waypoints_with_pose_twist", 10, &PurePursuitNode::CallbackFinalWaypointsWithPoseTwist, this);
+  final_waypoints_with_pose_twist_sub = nh_.subscribe("/final_waypoints_with_pose_twist", 1, &PurePursuitNode::CallbackFinalWaypointsWithPoseTwist, this); // Def: 10
 
   sub3_ = nh_.subscribe("config/waypoint_follower", 10,
     &PurePursuitNode::callbackFromConfig, this);
@@ -313,6 +313,7 @@ double PurePursuitNode::computeCommandVelocity() const
 
 double PurePursuitNode::computeCommandAccel() const
 {
+  if(pp_.getCurrentWaypoints().size() < 2) return 0.0;
   const geometry_msgs::Pose current_pose = pp_.getCurrentPose();
   const geometry_msgs::Pose target_pose =
     pp_.getCurrentWaypoints().at(1).pose.pose;
@@ -324,6 +325,7 @@ double PurePursuitNode::computeCommandAccel() const
   const double v0 = current_linear_velocity_;
   const double v = computeCommandVelocity();
   const double a = getSgn() * (v * v - v0 * v0) / (2 * x);
+
   return a;
 }
 
@@ -436,6 +438,8 @@ void PurePursuitNode::CallbackTwistPose(const rubis_msgs::PoseTwistStampedConstP
   current_linear_velocity_ = msg->twist.twist.linear.x;
   pp_.setCurrentVelocity(current_linear_velocity_);
   is_velocity_set_ = true;
+
+  if(lane_.waypoints.size() < 1) return;
 
   if(use_algorithm_){
     command_linear_velocity_ = findWayPointVelocity(lane_.waypoints.at(0));

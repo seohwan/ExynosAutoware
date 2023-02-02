@@ -11,6 +11,7 @@ for i, line in enumerate(exynos_autoware_paths):
         or '.cu' in line \
         or '.h' in line \
         or '.cpp' in line \
+        or '.hpp' in line \
         or '.msg' in line : continue
     remove_idx.append(i)
 

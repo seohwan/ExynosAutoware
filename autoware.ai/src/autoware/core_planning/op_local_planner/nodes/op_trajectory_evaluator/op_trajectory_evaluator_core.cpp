@@ -550,12 +550,6 @@ void TrajectoryEval::MainLoop()
   nh.getParam("/op_trajectory_evaluator/intersection_list", intersection_xml);
   PlannerHNS::MappingHelpers::ConstructIntersection_RUBIS(intersection_list_, intersection_xml);
 
-  ros::Rate r(rate);
-  while (ros::ok())
-  {
-    ros::spinOnce();
-    r.sleep();
-  }
-  
+  ros::spin();
 }
 }
