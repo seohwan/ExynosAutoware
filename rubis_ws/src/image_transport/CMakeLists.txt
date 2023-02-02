@@ -54,8 +54,6 @@ install(DIRECTORY include/${PROJECT_NAME}/
 )
 
 # add two execs
-add_executable(republish src/republish.cpp)
-target_link_libraries(republish ${PROJECT_NAME})
 
 add_executable(list_transports src/list_transports.cpp)
 target_link_libraries(list_transports
@@ -63,23 +61,9 @@ target_link_libraries(list_transports
   ${catkin_LIBRARIES}
 )
 
-install(TARGETS list_transports republish
-        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
 # add xml file
 install(FILES default_plugins.xml
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
-
-
-install(
-  TARGETS
-    republish
-    list_transports
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 install(DIRECTORY include/
