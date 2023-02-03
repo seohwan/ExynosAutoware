@@ -348,7 +348,7 @@ void TrajectoryEval::callbackGetLocalPlannerPath(const rubis_msgs::LaneArrayWith
       local_lanes.twist = msg->twist;
 
       pub_LocalWeightedTrajectoriesWithPoseTwist.publish(local_lanes);
-      pub_LocalWeightedTrajectories.publish(local_lanes.lane_array);
+      // pub_LocalWeightedTrajectories.publish(local_lanes.lane_array);
     }
     else
     {
