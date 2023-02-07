@@ -20,7 +20,7 @@ def main():
 
     # Update autoware.ai    
     autoware_path = '../autoware.ai/src'
-    cateogries, _ = get_dirs(autoware_path)
+    cateogries = get_dirs(autoware_path)
     local_branches = str(subprocess.check_output('git branch', shell=True))
 
     for category in cateogries:
