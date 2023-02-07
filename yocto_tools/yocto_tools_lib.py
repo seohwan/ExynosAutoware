@@ -29,6 +29,51 @@ def get_dirs(path):
 
     return dirs
 
+def get_dirs_and_branches_for_rubis_ws(path):
+    dirs = []
+    branches = []
+    for file in os.listdir(path):
+        if file == 'image_common':
+            if os.path.isdir(os.path.join(path, file)):
+                dirs.append('image_common/image_transport')
+                branches.append('image_transport')
+            continue
+        elif file == 'ros-bridge':
+            continue
+        elif file == 'carla_autoware_bridge':
+            continue
+        elif file == 'vesc':
+            if os.path.isdir(os.path.join(path, file)):        
+                dirs.append('vesc/vesc_ackermann')
+                dirs.append('vesc/vesc_driver')
+                dirs.append('vesc/vesc_msgs')
+                branches.append('vesc_ackermann')
+                branches.append('vesc_driver')
+                branches.append('vesc_msgs')
+            continue
+        elif file == 'inertiallabs_pkgs':   
+            if os.path.isdir(os.path.join(path, file)):                     
+                dirs.append('inertiallabs_pkgs/inertiallabs_ins')
+                dirs.append('inertiallabs_pkgs/inertiallabs_msgs')
+                branches.append('inertiallabs_ins')
+                branches.append('inertiallabs_msgs')
+            continue
+        elif file == 'gicp_localizer':
+            continue
+        elif file == 'carla_points_map_loader':
+            continue
+        elif file == 'CAN_translate':
+            if os.path.isdir(os.path.join(path, file)):
+                dirs.append('CAN_translate/can_translate')
+                branches.append('can_translate')
+            continue
+
+        if os.path.isdir(os.path.join(path, file)):
+            dirs.append(file)
+            branches.append(file)            
+    
+    return dirs, branches
+
 def move_to_top():
     cur_path = os.path.dirname(os.path.realpath(__file__))
     tokens = cur_path.split('/')

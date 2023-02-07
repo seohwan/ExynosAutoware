@@ -20,7 +20,7 @@ def main():
 
     # Update autoware.ai    
     autoware_path = '../autoware.ai/src'
-    cateogries = get_dirs(autoware_path)
+    cateogries, _ = get_dirs(autoware_path)
     local_branches = str(subprocess.check_output('git branch', shell=True))
 
     for category in cateogries:
@@ -50,9 +50,9 @@ def main():
     
     # Update rubis_ws
     rubis_ws_path = '../rubis_ws/src'
-    packages = get_dirs(rubis_ws_path)
-    for pkg in packages:
-        if pkg not in local_branches: os.system('git checkout --force '+pkg)
+    packages, rubis_ws_branches = get_dirs_and_branches_for_rubis_ws(rubis_ws_path)
+    for branch in rubis_ws_branches:
+        if branch not in local_branches: os.system('git checkout --force '+pkg)
     os.system('git checkout master')
 
     print('Update packages in rubis_ws')
@@ -60,7 +60,7 @@ def main():
     for i in pb:
         package = packages[i]
         package_path = os.path.join(rubis_ws_path, package)
-        branch_name = 'origin/'+package        
+        branch_name = 'origin/'+rubis_ws_branches[i]        
         pb.set_description(package)
         
         if branch_name not in branches: # Branch is not exist
