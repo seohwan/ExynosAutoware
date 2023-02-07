@@ -214,6 +214,7 @@ void TrajectoryEval::callbackGetGlobalPlannerPath(const autoware_msgs::LaneArray
 
 void TrajectoryEval::callbackGetLocalPlannerPath(const rubis_msgs::LaneArrayWithPoseTwistConstPtr& msg)
 {
+  rubis::start_task_profiling();
   // Before spin
   UpdateMyParams();
   UpdateTf();
@@ -374,7 +375,7 @@ void TrajectoryEval::callbackGetLocalPlannerPath(const rubis_msgs::LaneArrayWith
     sub_GlobalPlannerPaths = nh.subscribe("/lane_waypoints_array",   1,    &TrajectoryEval::callbackGetGlobalPlannerPath,   this);
 
 
-  rubis::stop_task_profiling(0, 0);  
+  rubis::stop_task_profiling(rubis::instance_, 0);  
 }
 
 void TrajectoryEval::callbackGetPredictedObjects(const rubis_msgs::DetectedObjectArrayConstPtr& msg)
@@ -554,13 +555,6 @@ void TrajectoryEval::MainLoop()
   private_nh.param(node_name+"/task_scheduling_configs/period", period, 0);
   attr = rubis::create_sched_attr(priority, exec_time, deadline, period);    
   rubis::init_task_scheduling(policy, attr);
-
-  std::string cpuset, cache_allocation;
-
-  private_nh.param(node_name+"/task_resource_configs/cpuset", cpuset, std::string("-1"));
-  private_nh.param(node_name+"/task_resource_configs/cache_allocation", cache_allocation, std::string("-1"));
-  rubis::init_resource_cpu_allocation(cpuset);
-  rubis::init_resource_cache_allocation(cache_allocation);
 
   rubis::init_task_profiling(task_response_time_filename);
 

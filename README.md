@@ -8,21 +8,15 @@ The RUBIS Autoware project for Exynos Board.
 # How to Use
 
 1. Modify source codes in `autoware.ai` and `rubis_ws`.
-3. Copy source codes from `autoware.ai` and `rubis_ws`
+2. Copy source codes from `autoware.ai` and `rubis_ws`
     ```
     cd yocto_tools
     python3 synchronize_source.py 
     ```
-4. Do commit.
-5. Update branches.
+3. Do commit.
+4. Update branches.
     ```
     python3 udpate_repository.py
-    ```
-6. Create and move meta-autoware recipes.
-    ```
-    cd ../yocto_tools
-    python3 create_recipes.py
-    sh move_recipes.sh
     ```
 
 # Master Branch 
