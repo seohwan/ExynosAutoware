@@ -43,7 +43,11 @@ for index in sorted(remove_idx, reverse=True):
 
 rubis_copy_src_paths = []
 for line in exynos_rubis_paths:
-    rubis_copy_src_paths.append(line.replace('../','~/'))
+    line = line.replace('../','~/')
+    if 'vision_darknet_detect_opencl' in line: continue
+
+    rubis_copy_src_paths.append(line)
+    
 
 for i in range(len(rubis_copy_src_paths)):
     os.system('cp '+ rubis_copy_src_paths[i] + ' ' + exynos_rubis_paths[i])
