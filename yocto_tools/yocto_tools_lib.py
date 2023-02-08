@@ -122,6 +122,7 @@ def create_branch(branch_name, src_path):
     return
 
 def update_branch(branch_name, src_path):
+    branch_name = 'origin/' + branch_name
     null_command = ' > /dev/null 2>&1'
     
     os.system('git checkout -f '+branch_name+null_command)

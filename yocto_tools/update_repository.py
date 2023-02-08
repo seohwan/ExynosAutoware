@@ -77,7 +77,6 @@ def main():
     for branch in remote_branches:        
         branch_name = branch.split('/')[1]
         delete_branch(branch_name)
-    print('##')
     terminate()
     
     return
