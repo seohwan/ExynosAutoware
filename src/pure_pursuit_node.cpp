@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Autoware Foundation. All rights reserved.
+ * Copyright 2015-2019 Autoware Foundation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-
+// ROS Includes
 #include <ros/ros.h>
-#include <iostream>
-#include "op_behavior_selector_core.h"
 
-using namespace std;
+// User defined includes
+#include <pure_pursuit/pure_pursuit_core.h>
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "op_behavior_selector");
-  BehaviorGeneratorNS::BehaviorGen beh_gen;
-  beh_gen.MainLoop();
+  ros::init(argc, argv, "pure_pursuit");
+  waypoint_follower::PurePursuitNode ppn;
+  ppn.run();
+
   return 0;
 }
