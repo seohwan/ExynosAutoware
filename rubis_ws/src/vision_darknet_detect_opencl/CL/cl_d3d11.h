@@ -1,128 +1,140 @@
-/*******************************************************************************
- * Copyright (c) 2008-2020 The Khronos Group Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- ******************************************************************************/
+/*********************************************************************
+* Software License Agreement (BSD License)
+* 
+*  Copyright (c) 2009, Willow Garage, Inc.
+*  All rights reserved.
+* 
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions
+*  are met:
+* 
+*   * Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   * Redistributions in binary form must reproduce the above
+*     copyright notice, this list of conditions and the following
+*     disclaimer in the documentation and/or other materials provided
+*     with the distribution.
+*   * Neither the name of the Willow Garage nor the names of its
+*     contributors may be used to endorse or promote products derived
+*     from this software without specific prior written permission.
+* 
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+*  POSSIBILITY OF SUCH DAMAGE.
+*********************************************************************/
 
-#ifndef __OPENCL_CL_D3D11_H
-#define __OPENCL_CL_D3D11_H
+#include <image_transport/raw_publisher.h>
+#include <ros/static_assert.h>
+#include <sensor_msgs/Image.h>
 
-#if defined(_MSC_VER)
-#if _MSC_VER >=1500
-#pragma warning( push )
-#pragma warning( disable : 4201 )
-#endif
-#endif
-#include <d3d11.h>
-#if defined(_MSC_VER)
-#if _MSC_VER >=1500
-#pragma warning( pop )
-#endif
-#endif
-#include <CL/cl.h>
-#include <CL/cl_platform.h>
+/** The code in the following namespace copies a lof of code from cv_bridge
+ * It does not depend on cv_bridge to not depend on OpenCV
+ * It re-defines a CvImage so that we can publish that object and not a
+ * sensor_msgs::Image, which requires a memory copy
+ */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+class ImageTransportImage
+{
+public:
+  sensor_msgs::Image image_; //!< ROS header
+  const uint8_t* data_;           //!< Image data for use with OpenCV
 
-/******************************************************************************
- * cl_khr_d3d11_sharing                                                       */
-#define cl_khr_d3d11_sharing 1
+  /**
+   * \brief Empty constructor.
+   */
+  ImageTransportImage() {}
 
-typedef cl_uint cl_d3d11_device_source_khr;
-typedef cl_uint cl_d3d11_device_set_khr;
+  /**
+   * \brief Constructor.
+   */
+  ImageTransportImage(const sensor_msgs::Image& image, const uint8_t* data)
+    : image_(image), data_(data)
+  {
+  }
+};
 
-/******************************************************************************/
+/// @cond DOXYGEN_IGNORE
+namespace ros {
 
-/* Error Codes */
-#define CL_INVALID_D3D11_DEVICE_KHR                  -1006
-#define CL_INVALID_D3D11_RESOURCE_KHR                -1007
-#define CL_D3D11_RESOURCE_ALREADY_ACQUIRED_KHR       -1008
-#define CL_D3D11_RESOURCE_NOT_ACQUIRED_KHR           -1009
+namespace message_traits {
 
-/* cl_d3d11_device_source */
-#define CL_D3D11_DEVICE_KHR                          0x4019
-#define CL_D3D11_DXGI_ADAPTER_KHR                    0x401A
+template<> struct MD5Sum<ImageTransportImage>
+{
+  static const char* value() { return MD5Sum<sensor_msgs::Image>::value(); }
+  static const char* value(const ImageTransportImage&) { return value(); }
 
-/* cl_d3d11_device_set */
-#define CL_PREFERRED_DEVICES_FOR_D3D11_KHR           0x401B
-#define CL_ALL_DEVICES_FOR_D3D11_KHR                 0x401C
+  static const uint64_t static_value1 = MD5Sum<sensor_msgs::Image>::static_value1;
+  static const uint64_t static_value2 = MD5Sum<sensor_msgs::Image>::static_value2;
+  
+  // If the definition of sensor_msgs/Image changes, we'll get a compile error here.
+  ROS_STATIC_ASSERT(MD5Sum<sensor_msgs::Image>::static_value1 == 0x060021388200f6f0ULL);
+  ROS_STATIC_ASSERT(MD5Sum<sensor_msgs::Image>::static_value2 == 0xf447d0fcd9c64743ULL);
+};
 
-/* cl_context_info */
-#define CL_CONTEXT_D3D11_DEVICE_KHR                  0x401D
-#define CL_CONTEXT_D3D11_PREFER_SHARED_RESOURCES_KHR 0x402D
+template<> struct DataType<ImageTransportImage>
+{
+  static const char* value() { return DataType<sensor_msgs::Image>::value(); }
+  static const char* value(const ImageTransportImage&) { return value(); }
+};
 
-/* cl_mem_info */
-#define CL_MEM_D3D11_RESOURCE_KHR                    0x401E
+template<> struct Definition<ImageTransportImage>
+{
+  static const char* value() { return Definition<sensor_msgs::Image>::value(); }
+  static const char* value(const ImageTransportImage&) { return value(); }
+};
 
-/* cl_image_info */
-#define CL_IMAGE_D3D11_SUBRESOURCE_KHR               0x401F
+template<> struct HasHeader<ImageTransportImage> : TrueType {};
 
-/* cl_command_type */
-#define CL_COMMAND_ACQUIRE_D3D11_OBJECTS_KHR         0x4020
-#define CL_COMMAND_RELEASE_D3D11_OBJECTS_KHR         0x4021
+} // namespace ros::message_traits
 
-/******************************************************************************/
+namespace serialization {
 
-typedef cl_int (CL_API_CALL *clGetDeviceIDsFromD3D11KHR_fn)(
-    cl_platform_id             platform,
-    cl_d3d11_device_source_khr d3d_device_source,
-    void *                     d3d_object,
-    cl_d3d11_device_set_khr    d3d_device_set,
-    cl_uint                    num_entries,
-    cl_device_id *             devices,
-    cl_uint *                  num_devices) CL_API_SUFFIX__VERSION_1_2;
+template<> struct Serializer<ImageTransportImage>
+{
+  /// @todo Still ignoring endianness...
+  
+  template<typename Stream>
+  inline static void write(Stream& stream, const ImageTransportImage& m)
+  {
+    stream.next(m.image_.header);
+    stream.next((uint32_t)m.image_.height); // height
+    stream.next((uint32_t)m.image_.width); // width
+    stream.next(m.image_.encoding);
+    uint8_t is_bigendian = 0;
+    stream.next(is_bigendian);
+    stream.next((uint32_t)m.image_.step);
+    size_t data_size = m.image_.step*m.image_.height;
+    stream.next((uint32_t)data_size);
+    if (data_size > 0)
+      memcpy(stream.advance(data_size), m.data_, data_size);
+  }
 
-typedef cl_mem (CL_API_CALL *clCreateFromD3D11BufferKHR_fn)(
-    cl_context     context,
-    cl_mem_flags   flags,
-    ID3D11Buffer * resource,
-    cl_int *       errcode_ret) CL_API_SUFFIX__VERSION_1_2;
+  inline static uint32_t serializedLength(const ImageTransportImage& m)
+  {
+    size_t data_size = m.image_.step*m.image_.height;
+    return serializationLength(m.image_.header) + serializationLength(m.image_.encoding) + 17 + data_size;
+  }
+};
 
-typedef cl_mem (CL_API_CALL *clCreateFromD3D11Texture2DKHR_fn)(
-    cl_context        context,
-    cl_mem_flags      flags,
-    ID3D11Texture2D * resource,
-    UINT              subresource,
-    cl_int *          errcode_ret) CL_API_SUFFIX__VERSION_1_2;
+} // namespace ros::serialization
 
-typedef cl_mem (CL_API_CALL *clCreateFromD3D11Texture3DKHR_fn)(
-    cl_context        context,
-    cl_mem_flags      flags,
-    ID3D11Texture3D * resource,
-    UINT              subresource,
-    cl_int *          errcode_ret) CL_API_SUFFIX__VERSION_1_2;
+} // namespace ros
 
-typedef cl_int (CL_API_CALL *clEnqueueAcquireD3D11ObjectsKHR_fn)(
-    cl_command_queue command_queue,
-    cl_uint          num_objects,
-    const cl_mem *   mem_objects,
-    cl_uint          num_events_in_wait_list,
-    const cl_event * event_wait_list,
-    cl_event *       event) CL_API_SUFFIX__VERSION_1_2;
 
-typedef cl_int (CL_API_CALL *clEnqueueReleaseD3D11ObjectsKHR_fn)(
-    cl_command_queue command_queue,
-    cl_uint          num_objects,
-    const cl_mem *   mem_objects,
-    cl_uint          num_events_in_wait_list,
-    const cl_event * event_wait_list,
-    cl_event *       event) CL_API_SUFFIX__VERSION_1_2;
+namespace image_transport {
 
-#ifdef __cplusplus
+void RawPublisher::publish(const sensor_msgs::Image& message, const uint8_t* data) const
+{
+   getPublisher().publish(ImageTransportImage(message, data));
 }
-#endif
 
-#endif  /* __OPENCL_CL_D3D11_H */
-
+} //namespace image_transport

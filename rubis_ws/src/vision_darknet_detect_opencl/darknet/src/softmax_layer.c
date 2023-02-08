@@ -1,108 +1,190 @@
-#include "softmax_layer.h"
-#include "blas.h"
-#include "opencl.h"
+#include <ros/ros.h>
+#include "autoware_msgs/ControlCommandStamped.h"
+#include "geometry_msgs/TwistStamped.h"
+#include "autoware_msgs/VehicleCmd.h"
+#include <nav_msgs/Odometry.h>
+#include <can_data_msgs/Car_ctrl_input.h>
+#include <can_data_msgs/Car_ctrl_output.h>
+#include <std_msgs/Header.h>
 
-#include <float.h>
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
+// #define SVL
+#define IONIC
+// #define DEBUG
 
-softmax_layer make_softmax_layer(int batch, int inputs, int groups)
-{
-	assert(inputs%groups == 0);
-	fprintf(stderr, "softmax                                        %4d\n",  inputs);
-	softmax_layer l;
-	l.type = SOFTMAX;
-	l.batch = batch;
-	l.groups = groups;
-	l.inputs = inputs;
-	l.outputs = inputs;
-	l.loss = (float*)calloc(inputs*batch, sizeof(float));
-	l.output = (float*)calloc(inputs*batch, sizeof(float));
-    l.delta = (float*)calloc(inputs*batch, sizeof(float));
-	l.cost = (float*)calloc(1, sizeof(float));
+static float dt_;
+static float kp_, ki_, kd_;
+static float max_acc_, min_acc_;
+static float current_velocity_;                      // m/s
+static float set_point_, process_variable_, output_; // m/s^2
+static float steering_angle_;
+static float steering_angle_ratio_;
+static std_msgs::Header header_;
+ros::Subscriber sub_ctrl_cmd_;
 
-	l.forward = forward_softmax_layer;
-	l.backward = backward_softmax_layer;
-
-#ifdef GPU
-	if (gpu_index >= 0) {
-		l.forward_gpu = forward_softmax_layer_gpu;
-		l.backward_gpu = backward_softmax_layer_gpu;
-        l.update_gpu = 0;
-		l.output_gpu = opencl_make_array(l.output, inputs*batch);
-		l.loss_gpu = opencl_make_array(l.loss, inputs*batch);
-        l.delta_gpu = opencl_make_array(l.delta, inputs*batch);
-	}
+#ifdef SVL
+static float svl_steering_angle_;
+ros::Publisher svl_pub_vehicle_cmd_;
+ros::Subscriber svl_sub_twist_cmd_;
+geometry_msgs::TwistStamped svl_twist_;
 #endif
-	return l;
+
+#ifdef IONIC
+static float ionic_steering_angle_;
+ros::Publisher pub_vehicle_cmd_;
+ros::Subscriber sub_ctrl_output_;
+#endif
+
+inline double kmph2mps(double kmph)
+{
+    return (kmph / 3.6);
 }
 
-void forward_softmax_layer(const softmax_layer l, network net)
+inline double mps2kmph(double mps)
 {
-    if(l.softmax_tree){
-        int i;
-        int count = 0;
-        for (i = 0; i < l.softmax_tree->groups; ++i) {
-            int group_size = l.softmax_tree->group_size[i];
-            softmax_cpu(net.input + count, group_size, l.batch, l.inputs, 1, 0, 1, l.temperature, l.output + count);
-            count += group_size;
-        }
+    return (mps * 3.6);
+}
+
+inline void calculate_linear_acceleration()
+{
+    float err = set_point_ - process_variable_;
+    output_ = kp_ * err + ki_ * err * dt_ + kd_ * err / dt_;
+    if (output_ > max_acc_)
+        output_ = max_acc_;
+    else if (output_ < min_acc_)
+        output_ = min_acc_;
+
+    ROS_INFO("set_point_ = %f, process_variable_ = %f, output_ = %f\n", set_point_, process_variable_, output_);
+
+    return;
+}
+
+inline void calculate_steering_wheel_angle()
+{
+#ifdef SVL
+    svl_steering_angle_ = steering_angle_;
+#endif
+
+#ifdef IONIC
+    ionic_steering_angle_ = steering_angle_ * steering_angle_ratio_;
+#endif
+
+    return;
+}
+
+inline void send_control_signal()
+{
+    calculate_linear_acceleration();
+    calculate_steering_wheel_angle();
+
+#ifdef SVL
+    autoware_msgs::VehicleCmd msg;
+    // msg.ctrl_cmd.linear_velocity = current_velocity_; // TODO: (for simulation) change to goal velocity
+    msg.ctrl_cmd.linear_velocity = set_point_;
+    printf("befor publish, output_ = %f\n", output_);
+    msg.ctrl_cmd.linear_acceleration = output_;
+    msg.ctrl_cmd.steering_angle = svl_steering_angle_;
+    // msg.twist_cmd = svl_twist_; // twist_cmd
+    // msg.twist_cmd.twist.linear.x += output_ * dt_; // TODO: (for simulation) real current velocity + caclculated acccleration * dt -> 
+    if(output_ < 0) {
+        msg.gear_cmd.gear=0;
     } else {
-        softmax_cpu(net.input, l.inputs/l.groups, l.batch, l.inputs, l.groups, l.inputs/l.groups, 1, l.temperature, l.output);
+        msg.gear_cmd.gear=64;
     }
 
-    if(net.truth && !l.noloss){
-        softmax_x_ent_cpu(l.batch*l.inputs, l.output, net.truth, l.delta, l.loss);
-        l.cost[0] = sum_array(l.loss, l.batch*l.inputs);
-    }
+    svl_pub_vehicle_cmd_.publish(msg);
+#endif
+
+#ifdef IONIC
+    can_data_msgs::Car_ctrl_input msg;
+    msg.header = header_;
+    msg.set_accel = 1;
+    msg.set_steering = 1;
+    msg.angle_filter_hz = 2.5;
+    msg.steering_angle = ionic_steering_angle_;
+    msg.acceleration = output_;
+    pub_vehicle_cmd_.publish(msg);
+#endif
 }
 
-void backward_softmax_layer(const softmax_layer l, network net)
+void ctrl_callback(const autoware_msgs::ControlCommandStampedConstPtr &msg)
 {
-    axpy_cpu(l.inputs*l.batch, 1, l.delta, 1, net.delta, 1);
+    set_point_ = (unsigned int)(msg->cmd.linear_velocity * 3.6);
+    set_point_ = set_point_ / 3.6;
+
+    if (msg->cmd.steering_angle - steering_angle_ > 45)
+        steering_angle_ = steering_angle_ + 45;
+    else if (msg->cmd.steering_angle - steering_angle_ < -45)
+        steering_angle_ = steering_angle_ - 45;
+    else
+        steering_angle_ = msg->cmd.steering_angle;
 }
 
-#ifdef GPU
-void pull_softmax_layer_output(const softmax_layer layer)
+#ifdef SVL
+void svl_twist_cmd_callback(const nav_msgs::Odometry::ConstPtr &msg)
 {
-	opencl_pull_array(layer.output_gpu, layer.output, layer.inputs*layer.batch);
-}
-
-void forward_softmax_layer_gpu(const softmax_layer l, network net)
-{
-    if(l.softmax_tree){
-        softmax_tree(net.input_gpu, 1, l.batch, l.inputs, l.temperature, l.output_gpu, *l.softmax_tree);
-        /*
-        int i;
-        int count = 0;
-        for (i = 0; i < l.softmax_tree->groups; ++i) {
-            int group_size = l.softmax_tree->group_size[i];
-            softmax_gpu(net.input_gpu + count, group_size, l.batch, l.inputs, 1, 0, 1, l.temperature, l.output_gpu + count);
-            count += group_size;
-        }
-        */
-    } else {
-        if(l.spatial){
-            softmax_gpu(net.input_gpu, l.c, l.batch*l.c, l.inputs/l.c, l.w*l.h, 1, l.w*l.h, 1, l.output_gpu);
-        }else{
-            softmax_gpu(net.input_gpu, l.inputs/l.groups, l.batch, l.inputs, l.groups, l.inputs/l.groups, 1, l.temperature, l.output_gpu);
-        }
-    }
-    if(net.truth && !l.noloss){
-        softmax_x_ent_gpu(l.batch*l.inputs, l.output_gpu, net.truth_gpu, l.delta_gpu, l.loss_gpu);
-        if(l.softmax_tree){
-            mask_gpu(l.batch*l.inputs, l.delta_gpu, SECRET_NUM, net.truth_gpu, 0);
-            mask_gpu(l.batch*l.inputs, l.loss_gpu, SECRET_NUM, net.truth_gpu, 0);
-        }
-        opencl_pull_array(l.loss_gpu, l.loss, l.batch*l.inputs);
-        l.cost[0] = sum_array(l.loss, l.batch*l.inputs);
-    }
-}
-
-void backward_softmax_layer_gpu(const softmax_layer layer, network net)
-{
-	axpy_gpu(layer.batch*layer.inputs, 1, layer.delta_gpu, 1, net.delta_gpu, 1);
+    svl_twist_.twist = msg->twist.twist;
+    current_velocity_ = svl_twist_.twist.linear.x;
+    process_variable_ = current_velocity_;
 }
 #endif
+
+#ifdef IONIC
+void ctrl_output_callback(const can_data_msgs::Car_ctrl_output::ConstPtr &msg)
+{
+    header_ = msg->header;
+    current_velocity_ = kmph2mps(msg->real_speed);
+    process_variable_ = current_velocity_; // m/s
+}
+#endif
+
+int main(int argc, char *argv[])
+{
+    ros::init(argc, argv, "controller");
+    ros::NodeHandle nh;
+
+    // Initialization
+    set_point_ = 0;
+    process_variable_ = 0;
+    output_ = 0;
+
+    nh.param("/controller/max_acc", max_acc_, (float)1.0);
+    nh.param("/controller/min_acc", min_acc_, (float)-3.0);
+
+    // PID parameters
+    nh.param("/controller/kp", kp_, (float)0.5);
+    nh.param("/controller/ki", ki_, (float)0.5);
+    nh.param("/controller/kd", kd_, (float)0.001);
+
+    nh.param("/controller/dt", dt_, (float)10.0); // ms
+
+#ifdef DEBUG
+    nh.param("/controller/set_point_", set_point_, (float)1.0);
+    nh.param("/controller/steering_angle_", steering_angle_, (float)30.0);
+#endif
+
+    sub_ctrl_cmd_ = nh.subscribe("/ctrl_cmd", 1, ctrl_callback);
+
+#ifdef SVL
+    svl_pub_vehicle_cmd_ = nh.advertise<autoware_msgs::VehicleCmd>("/vehicle_cmd_test", 1);
+    svl_sub_twist_cmd_ = nh.subscribe("/odom", 1, svl_twist_cmd_callback);
+#endif
+
+#ifdef IONIC
+    nh.param("/controller/steering_angle_ratio_", steering_angle_ratio_, (float)12.99932);
+    steering_angle_ratio_ = steering_angle_ratio_ / M_PI * 180;
+
+    pub_vehicle_cmd_ = nh.advertise<can_data_msgs::Car_ctrl_input>("/car_ctrl_input", 1);
+    sub_ctrl_output_ = nh.subscribe("/car_ctrl_output", 1, ctrl_output_callback);
+#endif
+
+    ros::Rate rate(1000 / dt_);
+
+    while (ros::ok())
+    {
+        send_control_signal();
+        ros::spinOnce();
+        rate.sleep();
+    }
+
+    return 0;
+}

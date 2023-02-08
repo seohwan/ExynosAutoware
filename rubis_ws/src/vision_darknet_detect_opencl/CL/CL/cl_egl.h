@@ -1,136 +1,94 @@
-/*******************************************************************************
- * Copyright (c) 2008-2015 The Khronos Group Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and/or associated documentation files (the
- * "Materials"), to deal in the Materials without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Materials, and to
- * permit persons to whom the Materials are furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Materials.
- *
- * MODIFICATIONS TO THIS FILE MAY MEAN IT NO LONGER ACCURATELY REFLECTS
- * KHRONOS STANDARDS. THE UNMODIFIED, NORMATIVE VERSIONS OF KHRONOS
- * SPECIFICATIONS AND HEADER INFORMATION ARE LOCATED AT
- *    https://www.khronos.org/registry/
- *
- * THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
- ******************************************************************************/
+/*********************************************************************
+* Software License Agreement (BSD License)
+* 
+*  Copyright (c) 2009, Willow Garage, Inc.
+*  All rights reserved.
+* 
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions
+*  are met:
+* 
+*   * Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   * Redistributions in binary form must reproduce the above
+*     copyright notice, this list of conditions and the following
+*     disclaimer in the documentation and/or other materials provided
+*     with the distribution.
+*   * Neither the name of the Willow Garage nor the names of its
+*     contributors may be used to endorse or promote products derived
+*     from this software without specific prior written permission.
+* 
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+*  POSSIBILITY OF SUCH DAMAGE.
+*********************************************************************/
 
-#ifndef __OPENCL_CL_EGL_H
-#define __OPENCL_CL_EGL_H
+#ifndef IMAGE_TRANSPORT_TRANSPORT_HINTS_H
+#define IMAGE_TRANSPORT_TRANSPORT_HINTS_H
 
-#ifdef __APPLE__
+#include <ros/ros.h>
 
-#else
-#include <CL/cl.h>
-#endif  
+namespace image_transport {
 
-#ifdef __cplusplus
-extern "C" {
+/**
+ * \brief Stores transport settings for an image topic subscription.
+ */
+class TransportHints
+{
+public:
+  /**
+   * \brief Constructor.
+   *
+   * The default transport can be overridden by setting a certain parameter to the
+   * name of the desired transport. By default this parameter is named "image_transport"
+   * in the node's local namespace. For consistency across ROS applications, the
+   * name of this parameter should not be changed without good reason.
+   *
+   * @param default_transport Preferred transport to use
+   * @param ros_hints Hints to pass through to ROS subscriptions
+   * @param parameter_nh Node handle to use when looking up the transport parameter.
+   * Defaults to the local namespace.
+   * @param parameter_name The name of the transport parameter
+   */
+  TransportHints(const std::string& default_transport = "raw",
+                 const ros::TransportHints& ros_hints = ros::TransportHints(),
+                 const ros::NodeHandle& parameter_nh = ros::NodeHandle("~"),
+                 const std::string& parameter_name = "image_transport")
+    : ros_hints_(ros_hints), parameter_nh_(parameter_nh)
+  {
+    parameter_nh_.param(parameter_name, transport_, default_transport);
+  }
+
+  const std::string& getTransport() const
+  {
+    return transport_;
+  }
+
+  const ros::TransportHints& getRosHints() const
+  {
+    return ros_hints_;
+  }
+
+  const ros::NodeHandle& getParameterNH() const
+  {
+    return parameter_nh_;
+  }
+  
+private:
+  std::string transport_;
+  ros::TransportHints ros_hints_;
+  ros::NodeHandle parameter_nh_;
+};
+
+} //namespace image_transport
+
 #endif
-
-
-/* Command type for events created with clEnqueueAcquireEGLObjectsKHR */
-#define CL_COMMAND_EGL_FENCE_SYNC_OBJECT_KHR  0x202F
-#define CL_COMMAND_ACQUIRE_EGL_OBJECTS_KHR    0x202D
-#define CL_COMMAND_RELEASE_EGL_OBJECTS_KHR    0x202E
-
-/* Error type for clCreateFromEGLImageKHR */
-#define CL_INVALID_EGL_OBJECT_KHR             -1093
-#define CL_EGL_RESOURCE_NOT_ACQUIRED_KHR      -1092
-
-/* CLeglImageKHR is an opaque handle to an EGLImage */
-typedef void* CLeglImageKHR;
-
-/* CLeglDisplayKHR is an opaque handle to an EGLDisplay */
-typedef void* CLeglDisplayKHR;
-
-/* CLeglSyncKHR is an opaque handle to an EGLSync object */
-typedef void* CLeglSyncKHR;
-
-/* properties passed to clCreateFromEGLImageKHR */
-typedef intptr_t cl_egl_image_properties_khr;
-
-
-#define cl_khr_egl_image 1
-
-extern CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromEGLImageKHR(cl_context                  /* context */,
-                        CLeglDisplayKHR             /* egldisplay */,
-                        CLeglImageKHR               /* eglimage */,
-                        cl_mem_flags                /* flags */,
-                        const cl_egl_image_properties_khr * /* properties */,
-                        cl_int *                    /* errcode_ret */) CL_API_SUFFIX__VERSION_1_0;
-
-typedef CL_API_ENTRY cl_mem (CL_API_CALL *clCreateFromEGLImageKHR_fn)(
-	cl_context                  context,
-	CLeglDisplayKHR             egldisplay,
-	CLeglImageKHR               eglimage,
-	cl_mem_flags                flags,
-	const cl_egl_image_properties_khr * properties,
-	cl_int *                    errcode_ret);
-
-
-extern CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueAcquireEGLObjectsKHR(cl_command_queue /* command_queue */,
-                              cl_uint          /* num_objects */,
-                              const cl_mem *   /* mem_objects */,
-                              cl_uint          /* num_events_in_wait_list */,
-                              const cl_event * /* event_wait_list */,
-                              cl_event *       /* event */) CL_API_SUFFIX__VERSION_1_0;
-
-typedef CL_API_ENTRY cl_int (CL_API_CALL *clEnqueueAcquireEGLObjectsKHR_fn)(
-	cl_command_queue command_queue,
-	cl_uint          num_objects,
-	const cl_mem *   mem_objects,
-	cl_uint          num_events_in_wait_list,
-	const cl_event * event_wait_list,
-	cl_event *       event);
-
-
-extern CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueReleaseEGLObjectsKHR(cl_command_queue /* command_queue */,
-                              cl_uint          /* num_objects */,
-                              const cl_mem *   /* mem_objects */,
-                              cl_uint          /* num_events_in_wait_list */,
-                              const cl_event * /* event_wait_list */,
-                              cl_event *       /* event */) CL_API_SUFFIX__VERSION_1_0;
-
-typedef CL_API_ENTRY cl_int (CL_API_CALL *clEnqueueReleaseEGLObjectsKHR_fn)(
-	cl_command_queue command_queue,
-	cl_uint          num_objects,
-	const cl_mem *   mem_objects,
-	cl_uint          num_events_in_wait_list,
-	const cl_event * event_wait_list,
-	cl_event *       event);
-
-
-#define cl_khr_egl_event 1
-
-extern CL_API_ENTRY cl_event CL_API_CALL
-clCreateEventFromEGLSyncKHR(cl_context      /* context */,
-                            CLeglSyncKHR    /* sync */,
-                            CLeglDisplayKHR /* display */,
-                            cl_int *        /* errcode_ret */) CL_API_SUFFIX__VERSION_1_0;
-
-typedef CL_API_ENTRY cl_event (CL_API_CALL *clCreateEventFromEGLSyncKHR_fn)(
-	cl_context      context,
-	CLeglSyncKHR    sync,
-	CLeglDisplayKHR display,
-	cl_int *        errcode_ret);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* __OPENCL_CL_EGL_H */

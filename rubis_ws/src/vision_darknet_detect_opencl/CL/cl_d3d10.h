@@ -1,128 +1,205 @@
-/*******************************************************************************
- * Copyright (c) 2008-2020 The Khronos Group Inc.
+/*********************************************************************
+* Software License Agreement (BSD License)
+* 
+*  Copyright (c) 2009, Willow Garage, Inc.
+*  All rights reserved.
+* 
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions
+*  are met:
+* 
+*   * Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   * Redistributions in binary form must reproduce the above
+*     copyright notice, this list of conditions and the following
+*     disclaimer in the documentation and/or other materials provided
+*     with the distribution.
+*   * Neither the name of the Willow Garage nor the names of its
+*     contributors may be used to endorse or promote products derived
+*     from this software without specific prior written permission.
+* 
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+*  POSSIBILITY OF SUCH DAMAGE.
+*********************************************************************/
+
+#ifndef IMAGE_TRANSPORT_IMAGE_TRANSPORT_H
+#define IMAGE_TRANSPORT_IMAGE_TRANSPORT_H
+
+#include "image_transport/publisher.h"
+#include "image_transport/subscriber.h"
+#include "image_transport/camera_publisher.h"
+#include "image_transport/camera_subscriber.h"
+#include "exports.h"
+
+namespace image_transport {
+
+/**
+ * \brief Advertise and subscribe to image topics.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- ******************************************************************************/
+ * ImageTransport is analogous to ros::NodeHandle in that it contains advertise() and
+ * subscribe() functions for creating advertisements and subscriptions of image topics.
+ */
+class IMAGE_TRANSPORT_DECL ImageTransport
+{
+public:
+  explicit ImageTransport(const ros::NodeHandle& nh);
 
-#ifndef __OPENCL_CL_D3D10_H
-#define __OPENCL_CL_D3D10_H
+  ~ImageTransport();
 
-#if defined(_MSC_VER)
-#if _MSC_VER >=1500
-#pragma warning( push )
-#pragma warning( disable : 4201 )
+  /*!
+   * \brief Advertise an image topic, simple version.
+   */
+  Publisher advertise(const std::string& base_topic, uint32_t queue_size, bool latch = false);
+
+  /*!
+   * \brief Advertise an image topic with subcriber status callbacks.
+   */
+  Publisher advertise(const std::string& base_topic, uint32_t queue_size,
+                      const SubscriberStatusCallback& connect_cb,
+                      const SubscriberStatusCallback& disconnect_cb = SubscriberStatusCallback(),
+                      const ros::VoidPtr& tracked_object = ros::VoidPtr(), bool latch = false);
+
+  /**
+   * \brief Subscribe to an image topic, version for arbitrary boost::function object.
+   */
+  Subscriber subscribe(const std::string& base_topic, uint32_t queue_size,
+                       const boost::function<void(const sensor_msgs::ImageConstPtr&)>& callback,
+                       const ros::VoidPtr& tracked_object = ros::VoidPtr(),
+                       const TransportHints& transport_hints = TransportHints());
+
+  /**
+   * \brief Subscribe to an image topic, version for bare function.
+   */
+  Subscriber subscribe(const std::string& base_topic, uint32_t queue_size,
+                       void(*fp)(const sensor_msgs::ImageConstPtr&),
+                       const TransportHints& transport_hints = TransportHints())
+  {
+    return subscribe(base_topic, queue_size,
+                     boost::function<void(const sensor_msgs::ImageConstPtr&)>(fp),
+                     ros::VoidPtr(), transport_hints);
+  }
+
+  /**
+   * \brief Subscribe to an image topic, version for class member function with bare pointer.
+   */
+  template<class T>
+  Subscriber subscribe(const std::string& base_topic, uint32_t queue_size,
+                       void(T::*fp)(const sensor_msgs::ImageConstPtr&), T* obj,
+                       const TransportHints& transport_hints = TransportHints())
+  {
+    return subscribe(base_topic, queue_size, boost::bind(fp, obj, _1), ros::VoidPtr(), transport_hints);
+  }
+
+  /**
+   * \brief Subscribe to an image topic, version for class member function with shared_ptr.
+   */
+  template<class T>
+  Subscriber subscribe(const std::string& base_topic, uint32_t queue_size,
+                       void(T::*fp)(const sensor_msgs::ImageConstPtr&),
+                       const boost::shared_ptr<T>& obj,
+                       const TransportHints& transport_hints = TransportHints())
+  {
+    return subscribe(base_topic, queue_size, boost::bind(fp, obj.get(), _1), obj, transport_hints);
+  }
+
+  /*!
+   * \brief Advertise a synchronized camera raw image + info topic pair, simple version.
+   */
+  CameraPublisher advertiseCamera(const std::string& base_topic, uint32_t queue_size, bool latch = false);
+
+  /*!
+   * \brief Advertise a synchronized camera raw image + info topic pair with subscriber status
+   * callbacks.
+   */
+  CameraPublisher advertiseCamera(const std::string& base_topic, uint32_t queue_size,
+                                  const SubscriberStatusCallback& image_connect_cb,
+                                  const SubscriberStatusCallback& image_disconnect_cb = SubscriberStatusCallback(),
+                                  const ros::SubscriberStatusCallback& info_connect_cb = ros::SubscriberStatusCallback(),
+                                  const ros::SubscriberStatusCallback& info_disconnect_cb = ros::SubscriberStatusCallback(),
+                                  const ros::VoidPtr& tracked_object = ros::VoidPtr(), bool latch = false);
+
+  /**
+   * \brief Subscribe to a synchronized image & camera info topic pair, version for arbitrary
+   * boost::function object.
+   *
+   * This version assumes the standard topic naming scheme, where the info topic is
+   * named "camera_info" in the same namespace as the base image topic.
+   */
+  CameraSubscriber subscribeCamera(const std::string& base_topic, uint32_t queue_size,
+                                   const CameraSubscriber::Callback& callback,
+                                   const ros::VoidPtr& tracked_object = ros::VoidPtr(),
+                                   const TransportHints& transport_hints = TransportHints());
+
+  /**
+   * \brief Subscribe to a synchronized image & camera info topic pair, version for bare function.
+   */
+  CameraSubscriber subscribeCamera(const std::string& base_topic, uint32_t queue_size,
+                                   void(*fp)(const sensor_msgs::ImageConstPtr&,
+                                             const sensor_msgs::CameraInfoConstPtr&),
+                                   const TransportHints& transport_hints = TransportHints())
+  {
+    return subscribeCamera(base_topic, queue_size, CameraSubscriber::Callback(fp), ros::VoidPtr(),
+                           transport_hints);
+  }
+
+  /**
+   * \brief Subscribe to a synchronized image & camera info topic pair, version for class member
+   * function with bare pointer.
+   */
+  template<class T>
+  CameraSubscriber subscribeCamera(const std::string& base_topic, uint32_t queue_size,
+                                   void(T::*fp)(const sensor_msgs::ImageConstPtr&,
+                                                const sensor_msgs::CameraInfoConstPtr&), T* obj,
+                                   const TransportHints& transport_hints = TransportHints())
+  {
+    return subscribeCamera(base_topic, queue_size, boost::bind(fp, obj, _1, _2), ros::VoidPtr(),
+                           transport_hints);
+  }
+
+  /**
+   * \brief Subscribe to a synchronized image & camera info topic pair, version for class member
+   * function with shared_ptr.
+   */
+  template<class T>
+  CameraSubscriber subscribeCamera(const std::string& base_topic, uint32_t queue_size,
+                                   void(T::*fp)(const sensor_msgs::ImageConstPtr&,
+                                                const sensor_msgs::CameraInfoConstPtr&),
+                                   const boost::shared_ptr<T>& obj,
+                                   const TransportHints& transport_hints = TransportHints())
+  {
+    return subscribeCamera(base_topic, queue_size, boost::bind(fp, obj.get(), _1, _2), obj,
+                           transport_hints);
+  }
+
+  /**
+   * \brief Returns the names of all transports declared in the system. Declared
+   * transports are not necessarily built or loadable.
+   */
+  std::vector<std::string> getDeclaredTransports() const;
+
+  /**
+   * \brief Returns the names of all transports that are loadable in the system.
+   */
+  std::vector<std::string> getLoadableTransports() const;
+
+private:
+  struct Impl;
+  typedef boost::shared_ptr<Impl> ImplPtr;
+  typedef boost::weak_ptr<Impl> ImplWPtr;
+
+  ImplPtr impl_;
+};
+
+} //namespace image_transport
+
 #endif
-#endif
-#include <d3d10.h>
-#if defined(_MSC_VER)
-#if _MSC_VER >=1500
-#pragma warning( pop )
-#endif
-#endif
-#include <CL/cl.h>
-#include <CL/cl_platform.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/******************************************************************************
- * cl_khr_d3d10_sharing                                                       */
-#define cl_khr_d3d10_sharing 1
-
-typedef cl_uint cl_d3d10_device_source_khr;
-typedef cl_uint cl_d3d10_device_set_khr;
-
-/******************************************************************************/
-
-/* Error Codes */
-#define CL_INVALID_D3D10_DEVICE_KHR                  -1002
-#define CL_INVALID_D3D10_RESOURCE_KHR                -1003
-#define CL_D3D10_RESOURCE_ALREADY_ACQUIRED_KHR       -1004
-#define CL_D3D10_RESOURCE_NOT_ACQUIRED_KHR           -1005
-
-/* cl_d3d10_device_source_nv */
-#define CL_D3D10_DEVICE_KHR                          0x4010
-#define CL_D3D10_DXGI_ADAPTER_KHR                    0x4011
-
-/* cl_d3d10_device_set_nv */
-#define CL_PREFERRED_DEVICES_FOR_D3D10_KHR           0x4012
-#define CL_ALL_DEVICES_FOR_D3D10_KHR                 0x4013
-
-/* cl_context_info */
-#define CL_CONTEXT_D3D10_DEVICE_KHR                  0x4014
-#define CL_CONTEXT_D3D10_PREFER_SHARED_RESOURCES_KHR 0x402C
-
-/* cl_mem_info */
-#define CL_MEM_D3D10_RESOURCE_KHR                    0x4015
-
-/* cl_image_info */
-#define CL_IMAGE_D3D10_SUBRESOURCE_KHR               0x4016
-
-/* cl_command_type */
-#define CL_COMMAND_ACQUIRE_D3D10_OBJECTS_KHR         0x4017
-#define CL_COMMAND_RELEASE_D3D10_OBJECTS_KHR         0x4018
-
-/******************************************************************************/
-
-typedef cl_int (CL_API_CALL *clGetDeviceIDsFromD3D10KHR_fn)(
-    cl_platform_id             platform,
-    cl_d3d10_device_source_khr d3d_device_source,
-    void *                     d3d_object,
-    cl_d3d10_device_set_khr    d3d_device_set,
-    cl_uint                    num_entries,
-    cl_device_id *             devices,
-    cl_uint *                  num_devices) CL_API_SUFFIX__VERSION_1_0;
-
-typedef cl_mem (CL_API_CALL *clCreateFromD3D10BufferKHR_fn)(
-    cl_context     context,
-    cl_mem_flags   flags,
-    ID3D10Buffer * resource,
-    cl_int *       errcode_ret) CL_API_SUFFIX__VERSION_1_0;
-
-typedef cl_mem (CL_API_CALL *clCreateFromD3D10Texture2DKHR_fn)(
-    cl_context        context,
-    cl_mem_flags      flags,
-    ID3D10Texture2D * resource,
-    UINT              subresource,
-    cl_int *          errcode_ret) CL_API_SUFFIX__VERSION_1_0;
-
-typedef cl_mem (CL_API_CALL *clCreateFromD3D10Texture3DKHR_fn)(
-    cl_context        context,
-    cl_mem_flags      flags,
-    ID3D10Texture3D * resource,
-    UINT              subresource,
-    cl_int *          errcode_ret) CL_API_SUFFIX__VERSION_1_0;
-
-typedef cl_int (CL_API_CALL *clEnqueueAcquireD3D10ObjectsKHR_fn)(
-    cl_command_queue command_queue,
-    cl_uint          num_objects,
-    const cl_mem *   mem_objects,
-    cl_uint          num_events_in_wait_list,
-    const cl_event * event_wait_list,
-    cl_event *       event) CL_API_SUFFIX__VERSION_1_0;
-
-typedef cl_int (CL_API_CALL *clEnqueueReleaseD3D10ObjectsKHR_fn)(
-    cl_command_queue command_queue,
-    cl_uint          num_objects,
-    const cl_mem *   mem_objects,
-    cl_uint          num_events_in_wait_list,
-    const cl_event * event_wait_list,
-    cl_event *       event) CL_API_SUFFIX__VERSION_1_0;
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif  /* __OPENCL_CL_D3D10_H */
-

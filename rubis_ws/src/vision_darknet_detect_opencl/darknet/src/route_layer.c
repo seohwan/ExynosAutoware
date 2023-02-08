@@ -1,153 +1,92 @@
-#include "route_layer.h"
-#include "utils.h"
-#include "opencl.h"
-#include "blas.h"
-#include <stdio.h>
+#include <ros/ros.h>
+#include <ros/time.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <rubis_msgs/PointCloud2.h>
+#include <rubis_lib/sched.hpp>
 
-route_layer make_route_layer(int batch, int n, int *input_layers, int *input_sizes, int groups, int group_id)
-{
-    fprintf(stderr,"route ");
-    route_layer l = {0};
-    l.type = ROUTE;
-    l.batch = batch;
-    l.n = n;
-    l.input_layers = input_layers;
-    l.input_sizes = input_sizes;
-    l.groups = groups;
-    l.group_id = group_id;
-    int i;
-    int outputs = 0;
-    for(i = 0; i < n; ++i){
-        fprintf(stderr," %d", input_layers[i]);
-        outputs += input_sizes[i];
-    }
-    fprintf(stderr,"\n");
-    outputs = outputs / groups;
-    l.outputs = outputs;
-    l.inputs = outputs;
-    //fprintf(stderr, " inputs = %d \t outputs = %d, groups = %d, group_id = %d \n", l.inputs, l.outputs, l.groups, l.group_id);
-    l.delta = (float*)calloc(outputs * batch, sizeof(float));
-    l.output = (float*)calloc(outputs * batch, sizeof(float));
+static ros::Subscriber sub;
+static ros::Publisher pub, pub_rubis;
+int is_topic_ready = 1;
 
-    l.forward = forward_route_layer;
-    l.backward = backward_route_layer;
-    #ifdef GPU
-    if(gpu_index >= 0) {
-        l.forward_gpu = forward_route_layer_gpu;
-        l.backward_gpu = backward_route_layer_gpu;
-        l.update_gpu = 0;
+void points_cb(const sensor_msgs::PointCloud2ConstPtr& msg){
+    rubis::start_task_profiling();
 
-        l.delta_gpu = opencl_make_array(l.delta, outputs * batch);
-        l.output_gpu = opencl_make_array(l.output, outputs * batch);
-    }
-    #endif
-    return l;
+    sensor_msgs::PointCloud2 msg_with_intensity = *msg;
+    
+    msg_with_intensity.fields.at(3).datatype = 7;
+    msg_with_intensity.header.stamp = ros::Time::now();
+
+    pub.publish(msg_with_intensity);
+
+    rubis_msgs::PointCloud2 rubis_msg_with_intensity;
+    rubis_msg_with_intensity.instance = rubis::instance_;
+    rubis_msg_with_intensity.msg = msg_with_intensity;
+    pub_rubis.publish(rubis_msg_with_intensity);
+
+    rubis::stop_task_profiling(rubis::instance_, 0);
+    rubis::instance_ = rubis::instance_+1;
+    rubis::obj_instance_ = rubis::obj_instance_+1;
 }
 
-void resize_route_layer(route_layer *l, network *net)
-{
-    int i;
-    layer first = net->layers[l->input_layers[0]];
-    l->out_w = first.out_w;
-    l->out_h = first.out_h;
-    l->out_c = first.out_c;
-    l->outputs = first.outputs;
-    l->input_sizes[0] = first.outputs;
-    for(i = 1; i < l->n; ++i){
-        int index = l->input_layers[i];
-        layer next = net->layers[index];
-        l->outputs += next.outputs;
-        l->input_sizes[i] = next.outputs;
-        if(next.out_w == first.out_w && next.out_h == first.out_h){
-            l->out_c += next.out_c;
-        }else{
-            printf("error: different size of input layers: %d x %d, %d x %d\n", next.out_w, next.out_h, first.out_w, first.out_h);
-            l->out_h = l->out_w = l->out_c = 0;
-            exit(EXIT_FAILURE);
+std::string exec(const char* cmd) {
+    char buffer[128];
+    std::string result = "";
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) throw std::runtime_error("popen() failed!");
+    try {
+        while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
+            result += buffer;
         }
+    } catch (...) {
+        pclose(pipe);
+        throw;
     }
-    l->out_c = l->out_c / l->groups;
-    l->outputs = l->outputs / l->groups;
-    l->inputs = l->outputs;
-
-#ifdef GPU
-    if (gpu_index >= 0) {
-        opencl_free_gpu_only(l->output_gpu);
-        opencl_free_gpu_only(l->delta_gpu);
-    }
-#endif
-    l->output = (float*)realloc(l->output, l->outputs * l->batch * sizeof(float));
-    l->delta = (float*)realloc(l->delta, l->outputs * l->batch * sizeof(float));
-#ifdef GPU
-    if (gpu_index >= 0) {
-        l->output_gpu = opencl_make_array(l->output, l->outputs * l->batch);
-        l->delta_gpu = opencl_make_array(l->delta, l->outputs * l->batch);
-    }
-#endif
+    pclose(pipe);
+    return result;
 }
 
-void forward_route_layer(const route_layer l, network net)
-{
-    int i, j;
-    int offset = 0;
-    for(i = 0; i < l.n; ++i){
-        int index = l.input_layers[i];
-        float *input = net.layers[index].output;
-        int input_size = l.input_sizes[i];
-        int part_input_size = input_size / l.groups;
-        for(j = 0; j < l.batch; ++j){
-            copy_cpu(part_input_size, input + j*input_size + part_input_size*l.group_id, 1, l.output + offset + j*l.outputs, 1);
-        }
-        offset += part_input_size;
-    }
-}
+int main(int argc, char** argv){
+    ros::init(argc, argv, "lidar_republisher");
+    ros::NodeHandle nh;
+    ros::NodeHandle private_nh("~");
+    std::string input_topic;
+    std::string output_topic;
 
-void backward_route_layer(const route_layer l, network net)
-{
-    int i, j;
-    int offset = 0;
-    for(i = 0; i < l.n; ++i){
-        int index = l.input_layers[i];
-        float *delta = net.layers[index].delta;
-        int input_size = l.input_sizes[i];
-        int part_input_size = input_size / l.groups;
-        for(j = 0; j < l.batch; ++j){
-            axpy_cpu(part_input_size, 1, l.delta + offset + j*l.outputs, 1, delta + j*input_size + part_input_size*l.group_id, 1);
-        }
-        offset += part_input_size;
-    }
-}
+    std::string node_name = ros::this_node::getName();
+    std::string input_topic_name = node_name + "/input_topic";
+    std::string output_topic_name = node_name + "/output_topic";
+    std::string rubis_output_topic;
 
-#ifdef GPU
-void forward_route_layer_gpu(const route_layer l, network net)
-{
-    int i, j;
-    int offset = 0;
-    for(i = 0; i < l.n; ++i){
-        int index = l.input_layers[i];
-        cl_mem_ext input = net.layers[index].output_gpu;
-        int input_size = l.input_sizes[i];
-        int part_input_size = input_size / l.groups;
-        for(j = 0; j < l.batch; ++j){
-            copy_offset_gpu(part_input_size, input, j*input_size + part_input_size*l.group_id, 1, l.output_gpu, offset + j*l.outputs, 1);
-        }
-        offset += part_input_size;
-    }
-}
+    nh.param<std::string>(input_topic_name, input_topic, "/points_raw_origin");
+    nh.param<std::string>(output_topic_name, output_topic, "/points_raw");
 
-void backward_route_layer_gpu(const route_layer l, network net)
-{
-    int i, j;
-    int offset = 0;
-    for(i = 0; i < l.n; ++i){
-        int index = l.input_layers[i];
-        cl_mem_ext delta = net.layers[index].delta_gpu;
-        int input_size = l.input_sizes[i];
-        int part_input_size = input_size / l.groups;
-        for(j = 0; j < l.batch; ++j){
-            axpy_offset_gpu(part_input_size, 1, l.delta_gpu, offset + j*l.outputs, 1, delta, j*input_size + part_input_size*l.group_id, 1);
-        }
-        offset += part_input_size;
-    }
+    sub = nh.subscribe(input_topic, 1, points_cb);      
+    pub = nh.advertise<sensor_msgs::PointCloud2>(output_topic, 1);
+    rubis_output_topic = "/rubis_"+output_topic.substr(1);
+    pub_rubis = nh.advertise<rubis_msgs::PointCloud2>(rubis_output_topic, 1);
+    
+    // Scheduling & Profiling Setup
+    std::string task_response_time_filename;
+    private_nh.param<std::string>(node_name+"/task_response_time_filename", task_response_time_filename, "~/Documents/profiling/response_time/lidar_republisher.csv");
+
+    int rate;
+    private_nh.param<int>(node_name+"/rate", rate, 10);
+
+    struct rubis::sched_attr attr;
+    std::string policy;
+    int priority, exec_time ,deadline, period;
+
+    private_nh.param(node_name+"/task_scheduling_configs/policy", policy, std::string("NONE"));    
+    private_nh.param(node_name+"/task_scheduling_configs/priority", priority, 99);
+    private_nh.param(node_name+"/task_scheduling_configs/exec_time", exec_time, 0);
+    private_nh.param(node_name+"/task_scheduling_configs/deadline", deadline, 0);
+    private_nh.param(node_name+"/task_scheduling_configs/period", period, 0);
+    attr = rubis::create_sched_attr(priority, exec_time, deadline, period);    
+    rubis::init_task_scheduling(policy, attr);
+
+    rubis::init_task_profiling(task_response_time_filename);
+    
+    ros::spin();
+    
+    return 0;
 }
-#endif

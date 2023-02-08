@@ -1,131 +1,141 @@
-/**********************************************************************************
- * Copyright (c) 2008-2015 The Khronos Group Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and/or associated documentation files (the
- * "Materials"), to deal in the Materials without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Materials, and to
- * permit persons to whom the Materials are furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Materials.
- *
- * MODIFICATIONS TO THIS FILE MAY MEAN IT NO LONGER ACCURATELY REFLECTS
- * KHRONOS STANDARDS. THE UNMODIFIED, NORMATIVE VERSIONS OF KHRONOS
- * SPECIFICATIONS AND HEADER INFORMATION ARE LOCATED AT
- *    https://www.khronos.org/registry/
- *
- * THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
- **********************************************************************************/
+/*********************************************************************
+* Software License Agreement (BSD License)
+* 
+*  Copyright (c) 2009, Willow Garage, Inc.
+*  All rights reserved.
+* 
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions
+*  are met:
+* 
+*   * Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   * Redistributions in binary form must reproduce the above
+*     copyright notice, this list of conditions and the following
+*     disclaimer in the documentation and/or other materials provided
+*     with the distribution.
+*   * Neither the name of the Willow Garage nor the names of its
+*     contributors may be used to endorse or promote products derived
+*     from this software without specific prior written permission.
+* 
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+*  POSSIBILITY OF SUCH DAMAGE.
+*********************************************************************/
 
-/* $Revision: 11708 $ on $Date: 2010-06-13 23:36:24 -0700 (Sun, 13 Jun 2010) $ */
+#ifndef IMAGE_TRANSPORT_SUBSCRIBER_PLUGIN_H
+#define IMAGE_TRANSPORT_SUBSCRIBER_PLUGIN_H
 
-#ifndef __OPENCL_CL_D3D10_H
-#define __OPENCL_CL_D3D10_H
+#include <ros/ros.h>
+#include <sensor_msgs/Image.h>
+#include <boost/noncopyable.hpp>
+#include "image_transport/transport_hints.h"
 
-#include <d3d10.h>
-#include <CL/cl.h>
-#include <CL/cl_platform.h>
+namespace image_transport {
 
-#ifdef __cplusplus
-extern "C" {
+/**
+ * \brief Base class for plugins to Subscriber.
+ */
+class SubscriberPlugin : boost::noncopyable
+{
+public:
+  typedef boost::function<void(const sensor_msgs::ImageConstPtr&)> Callback;
+  
+  virtual ~SubscriberPlugin() {}
+
+  /**
+   * \brief Get a string identifier for the transport provided by
+   * this plugin.
+   */
+  virtual std::string getTransportName() const = 0;
+
+  /**
+   * \brief Subscribe to an image topic, version for arbitrary boost::function object.
+   */
+  void subscribe(ros::NodeHandle& nh, const std::string& base_topic, uint32_t queue_size,
+                 const Callback& callback, const ros::VoidPtr& tracked_object = ros::VoidPtr(),
+                 const TransportHints& transport_hints = TransportHints())
+  {
+    return subscribeImpl(nh, base_topic, queue_size, callback, tracked_object, transport_hints);
+  }
+
+  /**
+   * \brief Subscribe to an image topic, version for bare function.
+   */
+  void subscribe(ros::NodeHandle& nh, const std::string& base_topic, uint32_t queue_size,
+                 void(*fp)(const sensor_msgs::ImageConstPtr&),
+                 const TransportHints& transport_hints = TransportHints())
+  {
+    return subscribe(nh, base_topic, queue_size,
+                     boost::function<void(const sensor_msgs::ImageConstPtr&)>(fp),
+                     ros::VoidPtr(), transport_hints);
+  }
+
+  /**
+   * \brief Subscribe to an image topic, version for class member function with bare pointer.
+   */
+  template<class T>
+  void subscribe(ros::NodeHandle& nh, const std::string& base_topic, uint32_t queue_size,
+                 void(T::*fp)(const sensor_msgs::ImageConstPtr&), T* obj,
+                 const TransportHints& transport_hints = TransportHints())
+  {
+    return subscribe(nh, base_topic, queue_size, boost::bind(fp, obj, _1), ros::VoidPtr(), transport_hints);
+  }
+
+  /**
+   * \brief Subscribe to an image topic, version for class member function with shared_ptr.
+   */
+  template<class T>
+  void subscribe(ros::NodeHandle& nh, const std::string& base_topic, uint32_t queue_size,
+                 void(T::*fp)(const sensor_msgs::ImageConstPtr&),
+                 const boost::shared_ptr<T>& obj,
+                 const TransportHints& transport_hints = TransportHints())
+  {
+    return subscribe(nh, base_topic, queue_size, boost::bind(fp, obj.get(), _1), obj, transport_hints);
+  }
+
+  /**
+   * \brief Get the transport-specific communication topic.
+   */
+  virtual std::string getTopic() const = 0;
+
+  /**
+   * \brief Returns the number of publishers this subscriber is connected to.
+   */
+  virtual uint32_t getNumPublishers() const = 0;
+
+  /**
+   * \brief Unsubscribe the callback associated with this SubscriberPlugin.
+   */
+  virtual void shutdown() = 0;
+
+  /**
+   * \brief Return the lookup name of the SubscriberPlugin associated with a specific
+   * transport identifier.
+   */
+  static std::string getLookupName(const std::string& transport_type)
+  {
+    return "image_transport/" + transport_type + "_sub";
+  }
+
+protected:
+  /**
+   * \brief Subscribe to an image transport topic. Must be implemented by the subclass.
+   */
+  virtual void subscribeImpl(ros::NodeHandle& nh, const std::string& base_topic, uint32_t queue_size,
+                             const Callback& callback, const ros::VoidPtr& tracked_object,
+                             const TransportHints& transport_hints) = 0;
+};
+
+} //namespace image_transport
+
 #endif
-
-/******************************************************************************
- * cl_khr_d3d10_sharing                                                       */
-#define cl_khr_d3d10_sharing 1
-
-typedef cl_uint cl_d3d10_device_source_khr;
-typedef cl_uint cl_d3d10_device_set_khr;
-
-/******************************************************************************/
-
-/* Error Codes */
-#define CL_INVALID_D3D10_DEVICE_KHR                  -1002
-#define CL_INVALID_D3D10_RESOURCE_KHR                -1003
-#define CL_D3D10_RESOURCE_ALREADY_ACQUIRED_KHR       -1004
-#define CL_D3D10_RESOURCE_NOT_ACQUIRED_KHR           -1005
-
-/* cl_d3d10_device_source_nv */
-#define CL_D3D10_DEVICE_KHR                          0x4010
-#define CL_D3D10_DXGI_ADAPTER_KHR                    0x4011
-
-/* cl_d3d10_device_set_nv */
-#define CL_PREFERRED_DEVICES_FOR_D3D10_KHR           0x4012
-#define CL_ALL_DEVICES_FOR_D3D10_KHR                 0x4013
-
-/* cl_context_info */
-#define CL_CONTEXT_D3D10_DEVICE_KHR                  0x4014
-#define CL_CONTEXT_D3D10_PREFER_SHARED_RESOURCES_KHR 0x402C
-
-/* cl_mem_info */
-#define CL_MEM_D3D10_RESOURCE_KHR                    0x4015
-
-/* cl_image_info */
-#define CL_IMAGE_D3D10_SUBRESOURCE_KHR               0x4016
-
-/* cl_command_type */
-#define CL_COMMAND_ACQUIRE_D3D10_OBJECTS_KHR         0x4017
-#define CL_COMMAND_RELEASE_D3D10_OBJECTS_KHR         0x4018
-
-/******************************************************************************/
-
-typedef CL_API_ENTRY cl_int (CL_API_CALL *clGetDeviceIDsFromD3D10KHR_fn)(
-    cl_platform_id             platform,
-    cl_d3d10_device_source_khr d3d_device_source,
-    void *                     d3d_object,
-    cl_d3d10_device_set_khr    d3d_device_set,
-    cl_uint                    num_entries,
-    cl_device_id *             devices,
-    cl_uint *                  num_devices) CL_API_SUFFIX__VERSION_1_0;
-
-typedef CL_API_ENTRY cl_mem (CL_API_CALL *clCreateFromD3D10BufferKHR_fn)(
-    cl_context     context,
-    cl_mem_flags   flags,
-    ID3D10Buffer * resource,
-    cl_int *       errcode_ret) CL_API_SUFFIX__VERSION_1_0;
-
-typedef CL_API_ENTRY cl_mem (CL_API_CALL *clCreateFromD3D10Texture2DKHR_fn)(
-    cl_context        context,
-    cl_mem_flags      flags,
-    ID3D10Texture2D * resource,
-    UINT              subresource,
-    cl_int *          errcode_ret) CL_API_SUFFIX__VERSION_1_0;
-
-typedef CL_API_ENTRY cl_mem (CL_API_CALL *clCreateFromD3D10Texture3DKHR_fn)(
-    cl_context        context,
-    cl_mem_flags      flags,
-    ID3D10Texture3D * resource,
-    UINT              subresource,
-    cl_int *          errcode_ret) CL_API_SUFFIX__VERSION_1_0;
-
-typedef CL_API_ENTRY cl_int (CL_API_CALL *clEnqueueAcquireD3D10ObjectsKHR_fn)(
-    cl_command_queue command_queue,
-    cl_uint          num_objects,
-    const cl_mem *   mem_objects,
-    cl_uint          num_events_in_wait_list,
-    const cl_event * event_wait_list,
-    cl_event *       event) CL_API_SUFFIX__VERSION_1_0;
-
-typedef CL_API_ENTRY cl_int (CL_API_CALL *clEnqueueReleaseD3D10ObjectsKHR_fn)(
-    cl_command_queue command_queue,
-    cl_uint          num_objects,
-    const cl_mem *   mem_objects,
-    cl_uint          num_events_in_wait_list,
-    const cl_event * event_wait_list,
-    cl_event *       event) CL_API_SUFFIX__VERSION_1_0;
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif  /* __OPENCL_CL_D3D10_H */
-

@@ -1,78 +1,64 @@
-#ifndef __CONVOLUTIONAL_KERNELS_CL__
-#define __CONVOLUTIONAL_KERNELS_CL__
+// -*- mode:c++; fill-column: 100; -*-
 
-static const char* const convolutional_kernel_source = CONVERT_KERNEL_TO_STRING(
+#include "vesc_ackermann/ackermann_to_vesc.h"
 
-__kernel void binarize_kernel(__global float *x, int n, __global float *binary)
+#include <cmath>
+#include <sstream>
+
+#include <std_msgs/Float64.h>
+
+namespace vesc_ackermann
 {
-    int i = (get_group_id(0) + get_group_id(1)*get_num_groups(0)) * get_local_size(0) + get_local_id(0);
-    if (i >= n) return;
-    binary[i] = (x[i] >= 0) ? 1 : -1;
+
+template <typename T>
+inline bool getRequiredParam(const ros::NodeHandle& nh, std::string name, T& value);
+
+AckermannToVesc::AckermannToVesc(ros::NodeHandle nh, ros::NodeHandle private_nh)
+{
+  // get conversion parameters
+  if (!getRequiredParam(nh, "speed_to_erpm_gain", speed_to_erpm_gain_))
+    return;
+  if (!getRequiredParam(nh, "speed_to_erpm_offset", speed_to_erpm_offset_))
+    return;
+  if (!getRequiredParam(nh, "steering_angle_to_servo_gain", steering_to_servo_gain_))
+    return;
+  if (!getRequiredParam(nh, "steering_angle_to_servo_offset", steering_to_servo_offset_))
+    return;
+
+  // create publishers to vesc electric-RPM (speed) and servo commands
+  erpm_pub_ = nh.advertise<std_msgs::Float64>("commands/motor/speed", 10);
+  servo_pub_ = nh.advertise<std_msgs::Float64>("commands/servo/position", 10);
+
+  // subscribe to ackermann topic
+  ackermann_sub_ = nh.subscribe("ackermann_cmd", 10, &AckermannToVesc::ackermannCmdCallback, this);
 }
 
-
-__kernel void binarize_input_kernel(__global float *input, int n, int size, __global float *binary)
+typedef ackermann_msgs::AckermannDriveStamped::ConstPtr AckermannMsgPtr;
+void AckermannToVesc::ackermannCmdCallback(const AckermannMsgPtr& cmd)
 {
-    int s = (get_group_id(0) + get_group_id(1)*get_num_groups(0)) * get_local_size(0) + get_local_id(0);
-    if (s >= size) return;
-    int i = 0;
-    float mean = 0;
-    for(i = 0; i < n; ++i){
-        mean += fabs(input[i*size + s]);
-    }
-    mean = mean / n;
-    for(i = 0; i < n; ++i){
-        binary[i*size + s] = (input[i*size + s] > 0) ? mean : -mean;
-    }
+  // calc vesc electric RPM (speed)
+  std_msgs::Float64::Ptr erpm_msg(new std_msgs::Float64);
+  erpm_msg->data = speed_to_erpm_gain_ * cmd->drive.speed + speed_to_erpm_offset_;
+
+  // calc steering angle (servo)
+  std_msgs::Float64::Ptr servo_msg(new std_msgs::Float64);
+  servo_msg->data = steering_to_servo_gain_ * cmd->drive.steering_angle + steering_to_servo_offset_;
+
+  // publish
+  if (ros::ok()) {
+    erpm_pub_.publish(erpm_msg);
+    servo_pub_.publish(servo_msg);
+  }
 }
 
-
-__kernel void binarize_weights_kernel(__global float *weights, int n, int size, __global float *binary)
+template <typename T>
+inline bool getRequiredParam(const ros::NodeHandle& nh, std::string name, T& value)
 {
-    int f = (get_group_id(0) + get_group_id(1)*get_num_groups(0)) * get_local_size(0) + get_local_id(0);
-    if (f >= n) return;
-    int i = 0;
-    float mean = 0;
-    for(i = 0; i < size; ++i){
-        mean += fabs(weights[f*size + i]);
-    }
-    mean = mean / size;
-    for(i = 0; i < size; ++i){
-        binary[f*size + i] = (weights[f*size + i] > 0) ? mean : -mean;
-        //binary[f*size + i] = weights[f*size + i];
-    }
+  if (nh.getParam(name, value))
+    return true;
+
+  ROS_FATAL("AckermannToVesc: Parameter %s is required.", name.c_str());
+  return false;
 }
 
-
-__kernel void smooth_kernel(__global float *x, int n, int w, int h, int c, int size, float rate, __global float *delta)
-{
-    int id = (get_group_id(0) + get_group_id(1)*get_num_groups(0)) * get_local_size(0) + get_local_id(0);
-    if(id >= n) return;
-
-    int j = id % w;
-    id /= w;
-    int i = id % h;
-    id /= h;
-    int k = id % c;
-    id /= c;
-    int b = id;
-
-    int w_offset = -(size/2.f);
-    int h_offset = -(size/2.f);
-
-    int out_index = j + w*(i + h*(k + c*b));
-    int l, m;
-    for(l = 0; l < size; ++l){
-        for(m = 0; m < size; ++m){
-            int cur_h = h_offset + i + l;
-            int cur_w = w_offset + j + m;
-            int index = cur_w + w*(cur_h + h*(k + b*c));
-            int valid = (cur_h >= 0 && cur_h < h &&
-                         cur_w >= 0 && cur_w < w);
-            delta[out_index] += valid ? rate*(x[index] - x[out_index]) : 0;
-        }
-    }
-}
-);
-
-#endif
+} // namespace vesc_ackermann

@@ -1,147 +1,83 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include "option_list.h"
-#include "utils.h"
+// -*- mode:c++; fill-column: 100; -*-
 
-list *read_data_cfg(char *filename)
-{
-    FILE *file = fopen(filename, "r");
-    if(file == 0) file_error(filename);
-    char *line;
-    int nu = 0;
-    list *options = make_list();
-    while((line=fgetl(file)) != 0){
-        ++ nu;
-        strip(line);
-        switch(line[0]){
-            case '\0':
-            case '#':
-            case ';':
-                free(line);
-                break;
-            default:
-                if(!read_option(line, options)){
-                    fprintf(stderr, "Config file error line %d, could parse: %s\n", nu, line);
-                    free(line);
-                }
-                break;
-        }
-    }
-    fclose(file);
-    return options;
-}
+#ifndef VESC_DRIVER_VESC_DRIVER_H_
+#define VESC_DRIVER_VESC_DRIVER_H_
 
-metadata get_metadata(char *file)
-{
-    metadata m = {0};
-    list *options = read_data_cfg(file);
+#include <string>
 
-    char *name_list = option_find_str(options, "names", 0);
-    if(!name_list) name_list = option_find_str(options, "labels", 0);
-    if(!name_list) {
-        fprintf(stderr, "No names or labels found\n");
-    } else {
-        m.names = get_labels(name_list);
-    }
-    m.classes = option_find_int(options, "classes", 2);
-    free_list(options);
-    return m;
-}
+#include <ros/ros.h>
+#include <std_msgs/Float64.h>
+#include <boost/optional.hpp>
 
-int read_option(char *s, list *options)
-{
-    size_t i;
-    size_t len = strlen(s);
-    char *val = 0;
-    for(i = 0; i < len; ++i){
-        if(s[i] == '='){
-            s[i] = '\0';
-            val = s+i+1;
-            break;
-        }
-    }
-    if(i == len-1) return 0;
-    char *key = s;
-    option_insert(options, key, val);
-    return 1;
-}
+#include "vesc_driver/vesc_interface.h"
+#include "vesc_driver/vesc_packet.h"
 
-void option_insert(list *l, char *key, char *val)
+namespace vesc_driver
 {
-    kvp *p = (kvp*)malloc(sizeof(kvp));
-    p->key = key;
-    p->val = val;
-    p->used = 0;
-    list_insert(l, p);
-}
 
-void option_unused(list *l)
+class VescDriver
 {
-    node *n = l->front;
-    while(n){
-        kvp *p = (kvp *)n->val;
-        if(!p->used){
-            fprintf(stderr, "Unused field: '%s = %s'\n", p->key, p->val);
-        }
-        n = n->next;
-    }
-}
+public:
 
-char *option_find(list *l, char *key)
-{
-    node *n = l->front;
-    while(n){
-        kvp *p = (kvp *)n->val;
-        if(strcmp(p->key, key) == 0){
-            p->used = 1;
-            return p->val;
-        }
-        n = n->next;
-    }
-    return 0;
-}
-char *option_find_str(list *l, char *key, char *def)
-{
-    char *v = option_find(l, key);
-    if(v) return v;
-    if(def) fprintf(stderr, "%s: Using default '%s'\n", key, def);
-    return def;
-}
+  VescDriver(ros::NodeHandle nh,
+             ros::NodeHandle private_nh);
 
-char *option_find_str_quiet(list *l, char *key, char *def)
-{
-    char *v = option_find(l, key);
-    if (v) return v;
-    return def;
-}
+private:
+  // interface to the VESC
+  VescInterface vesc_;
+  void vescPacketCallback(const boost::shared_ptr<VescPacket const>& packet);
+  void vescErrorCallback(const std::string& error);
 
-int option_find_int(list *l, char *key, int def)
-{
-    char *v = option_find(l, key);
-    if(v) return atoi(v);
-    fprintf(stderr, "%s: Using default '%d'\n", key, def);
-    return def;
-}
+  // limits on VESC commands
+  struct CommandLimit
+  {
+    CommandLimit(const ros::NodeHandle& nh, const std::string& str,
+                 const boost::optional<double>& min_lower = boost::optional<double>(),
+                 const boost::optional<double>& max_upper = boost::optional<double>());
+    double clip(double value);
+    std::string name;
+    boost::optional<double> lower;
+    boost::optional<double> upper;
+  };
+  CommandLimit duty_cycle_limit_;
+  CommandLimit current_limit_;
+  CommandLimit brake_limit_;
+  CommandLimit speed_limit_;
+  CommandLimit position_limit_;
+  CommandLimit servo_limit_;
 
-int option_find_int_quiet(list *l, char *key, int def)
-{
-    char *v = option_find(l, key);
-    if(v) return atoi(v);
-    return def;
-}
+  // ROS services
+  ros::Publisher state_pub_;
+  ros::Publisher servo_sensor_pub_;
+  ros::Subscriber duty_cycle_sub_;
+  ros::Subscriber current_sub_;
+  ros::Subscriber brake_sub_;
+  ros::Subscriber speed_sub_;
+  ros::Subscriber position_sub_;
+  ros::Subscriber servo_sub_;
+  ros::Timer timer_;
 
-float option_find_float_quiet(list *l, char *key, float def)
-{
-    char *v = option_find(l, key);
-    if(v) return atof(v);
-    return def;
-}
+  // driver modes (possible states)
+  typedef enum {
+    MODE_INITIALIZING,
+    MODE_OPERATING
+  } driver_mode_t;
 
-float option_find_float(list *l, char *key, float def)
-{
-    char *v = option_find(l, key);
-    if(v) return atof(v);
-    fprintf(stderr, "%s: Using default '%lf'\n", key, def);
-    return def;
-}
+  // other variables
+  driver_mode_t driver_mode_;           ///< driver state machine mode (state)
+  int fw_version_major_;                ///< firmware major version reported by vesc
+  int fw_version_minor_;                ///< firmware minor version reported by vesc
+
+  // ROS callbacks
+  void timerCallback(const ros::TimerEvent& event);
+  void dutyCycleCallback(const std_msgs::Float64::ConstPtr& duty_cycle);
+  void currentCallback(const std_msgs::Float64::ConstPtr& current);
+  void brakeCallback(const std_msgs::Float64::ConstPtr& brake);
+  void speedCallback(const std_msgs::Float64::ConstPtr& speed);
+  void positionCallback(const std_msgs::Float64::ConstPtr& position);
+  void servoCallback(const std_msgs::Float64::ConstPtr& servo);
+};
+
+} // namespace vesc_driver
+
+#endif // VESC_DRIVER_VESC_DRIVER_H_

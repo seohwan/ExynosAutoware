@@ -1,169 +1,160 @@
-/*******************************************************************************
- * Copyright (c) 2008-2021 The Khronos Group Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- ******************************************************************************/
+/*********************************************************************
+* Software License Agreement (BSD License)
+* 
+*  Copyright (c) 2009, Willow Garage, Inc.
+*  All rights reserved.
+* 
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions
+*  are met:
+* 
+*   * Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   * Redistributions in binary form must reproduce the above
+*     copyright notice, this list of conditions and the following
+*     disclaimer in the documentation and/or other materials provided
+*     with the distribution.
+*   * Neither the name of the Willow Garage nor the names of its
+*     contributors may be used to endorse or promote products derived
+*     from this software without specific prior written permission.
+* 
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+*  POSSIBILITY OF SUCH DAMAGE.
+*********************************************************************/
 
-#ifndef __OPENCL_CL_GL_H
-#define __OPENCL_CL_GL_H
+#include "image_transport/image_transport.h"
+#include "image_transport/camera_common.h"
 
-#include <CL/cl.h>
+namespace image_transport {
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+struct CameraPublisher::Impl
+{
+  Impl()
+    : unadvertised_(false)
+  {
+  }
 
-typedef cl_uint     cl_gl_object_type;
-typedef cl_uint     cl_gl_texture_info;
-typedef cl_uint     cl_gl_platform_info;
-typedef struct __GLsync *cl_GLsync;
+  ~Impl()
+  {
+    shutdown();
+  }
 
-/* cl_gl_object_type = 0x2000 - 0x200F enum values are currently taken           */
-#define CL_GL_OBJECT_BUFFER                     0x2000
-#define CL_GL_OBJECT_TEXTURE2D                  0x2001
-#define CL_GL_OBJECT_TEXTURE3D                  0x2002
-#define CL_GL_OBJECT_RENDERBUFFER               0x2003
-#ifdef CL_VERSION_1_2
-#define CL_GL_OBJECT_TEXTURE2D_ARRAY            0x200E
-#define CL_GL_OBJECT_TEXTURE1D                  0x200F
-#define CL_GL_OBJECT_TEXTURE1D_ARRAY            0x2010
-#define CL_GL_OBJECT_TEXTURE_BUFFER             0x2011
-#endif
+  bool isValid() const
+  {
+    return !unadvertised_;
+  }
+  
+  void shutdown()
+  {
+    if (!unadvertised_) {
+      unadvertised_ = true;
+      image_pub_.shutdown();
+      info_pub_.shutdown();
+    }
+  }
 
-/* cl_gl_texture_info           */
-#define CL_GL_TEXTURE_TARGET                    0x2004
-#define CL_GL_MIPMAP_LEVEL                      0x2005
-#ifdef CL_VERSION_1_2
-#define CL_GL_NUM_SAMPLES                       0x2012
-#endif
+  Publisher image_pub_;
+  ros::Publisher info_pub_;
+  bool unadvertised_;
+  //double constructed_;
+};
 
+CameraPublisher::CameraPublisher(ImageTransport& image_it, ros::NodeHandle& info_nh,
+                                 const std::string& base_topic, uint32_t queue_size,
+                                 const SubscriberStatusCallback& image_connect_cb,
+                                 const SubscriberStatusCallback& image_disconnect_cb,
+                                 const ros::SubscriberStatusCallback& info_connect_cb,
+                                 const ros::SubscriberStatusCallback& info_disconnect_cb,
+                                 const ros::VoidPtr& tracked_object, bool latch)
+  : impl_(new Impl)
+{
+  // Explicitly resolve name here so we compute the correct CameraInfo topic when the
+  // image topic is remapped (#4539).
+  std::string image_topic = info_nh.resolveName(base_topic);
+  std::string info_topic = getCameraInfoTopic(image_topic);
 
-extern CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromGLBuffer(cl_context     context,
-                     cl_mem_flags   flags,
-                     cl_GLuint      bufobj,
-                     cl_int *       errcode_ret) CL_API_SUFFIX__VERSION_1_0;
-
-#ifdef CL_VERSION_1_2
-
-extern CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromGLTexture(cl_context      context,
-                      cl_mem_flags    flags,
-                      cl_GLenum       target,
-                      cl_GLint        miplevel,
-                      cl_GLuint       texture,
-                      cl_int *        errcode_ret) CL_API_SUFFIX__VERSION_1_2;
-
-#endif
-
-extern CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromGLRenderbuffer(cl_context   context,
-                           cl_mem_flags flags,
-                           cl_GLuint    renderbuffer,
-                           cl_int *     errcode_ret) CL_API_SUFFIX__VERSION_1_0;
-
-extern CL_API_ENTRY cl_int CL_API_CALL
-clGetGLObjectInfo(cl_mem                memobj,
-                  cl_gl_object_type *   gl_object_type,
-                  cl_GLuint *           gl_object_name) CL_API_SUFFIX__VERSION_1_0;
-
-extern CL_API_ENTRY cl_int CL_API_CALL
-clGetGLTextureInfo(cl_mem               memobj,
-                   cl_gl_texture_info   param_name,
-                   size_t               param_value_size,
-                   void *               param_value,
-                   size_t *             param_value_size_ret) CL_API_SUFFIX__VERSION_1_0;
-
-extern CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueAcquireGLObjects(cl_command_queue      command_queue,
-                          cl_uint               num_objects,
-                          const cl_mem *        mem_objects,
-                          cl_uint               num_events_in_wait_list,
-                          const cl_event *      event_wait_list,
-                          cl_event *            event) CL_API_SUFFIX__VERSION_1_0;
-
-extern CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueReleaseGLObjects(cl_command_queue      command_queue,
-                          cl_uint               num_objects,
-                          const cl_mem *        mem_objects,
-                          cl_uint               num_events_in_wait_list,
-                          const cl_event *      event_wait_list,
-                          cl_event *            event) CL_API_SUFFIX__VERSION_1_0;
-
-
-/* Deprecated OpenCL 1.1 APIs */
-extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED cl_mem CL_API_CALL
-clCreateFromGLTexture2D(cl_context      context,
-                        cl_mem_flags    flags,
-                        cl_GLenum       target,
-                        cl_GLint        miplevel,
-                        cl_GLuint       texture,
-                        cl_int *        errcode_ret) CL_API_SUFFIX__VERSION_1_1_DEPRECATED;
-
-extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED cl_mem CL_API_CALL
-clCreateFromGLTexture3D(cl_context      context,
-                        cl_mem_flags    flags,
-                        cl_GLenum       target,
-                        cl_GLint        miplevel,
-                        cl_GLuint       texture,
-                        cl_int *        errcode_ret) CL_API_SUFFIX__VERSION_1_1_DEPRECATED;
-
-/* cl_khr_gl_sharing extension  */
-
-#define cl_khr_gl_sharing 1
-
-typedef cl_uint     cl_gl_context_info;
-
-/* Additional Error Codes  */
-#define CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR  -1000
-
-/* cl_gl_context_info  */
-#define CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR    0x2006
-#define CL_DEVICES_FOR_GL_CONTEXT_KHR           0x2007
-
-/* Additional cl_context_properties  */
-#define CL_GL_CONTEXT_KHR                       0x2008
-#define CL_EGL_DISPLAY_KHR                      0x2009
-#define CL_GLX_DISPLAY_KHR                      0x200A
-#define CL_WGL_HDC_KHR                          0x200B
-#define CL_CGL_SHAREGROUP_KHR                   0x200C
-
-extern CL_API_ENTRY cl_int CL_API_CALL
-clGetGLContextInfoKHR(const cl_context_properties * properties,
-                      cl_gl_context_info            param_name,
-                      size_t                        param_value_size,
-                      void *                        param_value,
-                      size_t *                      param_value_size_ret) CL_API_SUFFIX__VERSION_1_0;
-
-typedef cl_int (CL_API_CALL *clGetGLContextInfoKHR_fn)(
-    const cl_context_properties * properties,
-    cl_gl_context_info            param_name,
-    size_t                        param_value_size,
-    void *                        param_value,
-    size_t *                      param_value_size_ret);
-
-/* 
- *  cl_khr_gl_event extension
- */
-#define CL_COMMAND_GL_FENCE_SYNC_OBJECT_KHR     0x200D
-
-extern CL_API_ENTRY cl_event CL_API_CALL
-clCreateEventFromGLsyncKHR(cl_context context,
-                           cl_GLsync  sync,
-                           cl_int *   errcode_ret) CL_API_SUFFIX__VERSION_1_1;
-
-#ifdef __cplusplus
+  impl_->image_pub_ = image_it.advertise(image_topic, queue_size, image_connect_cb,
+                                         image_disconnect_cb, tracked_object, latch);
+  impl_->info_pub_ = info_nh.advertise<sensor_msgs::CameraInfo>(info_topic, queue_size, info_connect_cb,
+                                                                info_disconnect_cb, tracked_object, latch);
 }
-#endif
 
-#endif  /* __OPENCL_CL_GL_H */
+uint32_t CameraPublisher::getNumSubscribers() const
+{
+  if (impl_ && impl_->isValid())
+    return std::max(impl_->image_pub_.getNumSubscribers(), impl_->info_pub_.getNumSubscribers());
+  return 0;
+}
+
+std::string CameraPublisher::getTopic() const
+{
+  if (impl_) return impl_->image_pub_.getTopic();
+  return std::string();
+}
+
+std::string CameraPublisher::getInfoTopic() const
+{
+  if (impl_) return impl_->info_pub_.getTopic();
+  return std::string();
+}
+
+void CameraPublisher::publish(const sensor_msgs::Image& image, const sensor_msgs::CameraInfo& info) const
+{
+  if (!impl_ || !impl_->isValid()) {
+    ROS_ASSERT_MSG(false, "Call to publish() on an invalid image_transport::CameraPublisher");
+    return;
+  }
+  
+  impl_->image_pub_.publish(image);
+  impl_->info_pub_.publish(info);
+}
+
+void CameraPublisher::publish(const sensor_msgs::ImageConstPtr& image,
+                              const sensor_msgs::CameraInfoConstPtr& info) const
+{
+  if (!impl_ || !impl_->isValid()) {
+    ROS_ASSERT_MSG(false, "Call to publish() on an invalid image_transport::CameraPublisher");
+    return;
+  }
+  
+  impl_->image_pub_.publish(image);
+  impl_->info_pub_.publish(info);
+}
+
+void CameraPublisher::publish(sensor_msgs::Image& image, sensor_msgs::CameraInfo& info,
+                              ros::Time stamp) const
+{
+  if (!impl_ || !impl_->isValid()) {
+    ROS_ASSERT_MSG(false, "Call to publish() on an invalid image_transport::CameraPublisher");
+    return;
+  }
+  
+  image.header.stamp = stamp;
+  info.header.stamp = stamp;
+  publish(image, info);
+}
+
+void CameraPublisher::shutdown()
+{
+  if (impl_) {
+    impl_->shutdown();
+    impl_.reset();
+  }
+}
+
+CameraPublisher::operator void*() const
+{
+  return (impl_ && impl_->isValid()) ? (void*)1 : (void*)0;
+}
+
+} //namespace image_transport

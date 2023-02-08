@@ -1,86 +1,56 @@
-/*******************************************************************************
- * Copyright (c) 2018 The Khronos Group Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and/or associated documentation files (the
- * "Materials"), to deal in the Materials without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Materials, and to
- * permit persons to whom the Materials are furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Materials.
- *
- * MODIFICATIONS TO THIS FILE MAY MEAN IT NO LONGER ACCURATELY REFLECTS
- * KHRONOS STANDARDS. THE UNMODIFIED, NORMATIVE VERSIONS OF KHRONOS
- * SPECIFICATIONS AND HEADER INFORMATION ARE LOCATED AT
- *    https://www.khronos.org/registry/
- *
- * THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
- ******************************************************************************/
+/*********************************************************************
+* Software License Agreement (BSD License)
+* 
+*  Copyright (c) 2009, Willow Garage, Inc.
+*  All rights reserved.
+* 
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions
+*  are met:
+* 
+*   * Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   * Redistributions in binary form must reproduce the above
+*     copyright notice, this list of conditions and the following
+*     disclaimer in the documentation and/or other materials provided
+*     with the distribution.
+*   * Neither the name of the Willow Garage nor the names of its
+*     contributors may be used to endorse or promote products derived
+*     from this software without specific prior written permission.
+* 
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+*  POSSIBILITY OF SUCH DAMAGE.
+*********************************************************************/
 
-#ifndef __CL_VERSION_H
-#define __CL_VERSION_H
+#ifndef IMAGE_TRANSPORT_LOADER_FWDS_H
+#define IMAGE_TRANSPORT_LOADER_FWDS_H
 
-/* Detect which version to target */
-#if !defined(CL_TARGET_OPENCL_VERSION)
-#pragma message("cl_version.h: CL_TARGET_OPENCL_VERSION is not defined. Defaulting to 220 (OpenCL 2.2)")
-#define CL_TARGET_OPENCL_VERSION 220
-#endif
-#if CL_TARGET_OPENCL_VERSION != 100 && \
-    CL_TARGET_OPENCL_VERSION != 110 && \
-    CL_TARGET_OPENCL_VERSION != 120 && \
-    CL_TARGET_OPENCL_VERSION != 200 && \
-    CL_TARGET_OPENCL_VERSION != 210 && \
-    CL_TARGET_OPENCL_VERSION != 220
-#pragma message("cl_version: CL_TARGET_OPENCL_VERSION is not a valid value (100, 110, 120, 200, 210, 220). Defaulting to 220 (OpenCL 2.2)")
-#undef CL_TARGET_OPENCL_VERSION
-#define CL_TARGET_OPENCL_VERSION 220
-#endif
+// Forward-declare some classes most users shouldn't care about so that
+// image_transport.h doesn't bring them in.
 
+namespace pluginlib {
+  template<class T> class ClassLoader;
+}
 
-/* OpenCL Version */
-#if CL_TARGET_OPENCL_VERSION >= 220 && !defined(CL_VERSION_2_2)
-#define CL_VERSION_2_2  1
-#endif
-#if CL_TARGET_OPENCL_VERSION >= 210 && !defined(CL_VERSION_2_1)
-#define CL_VERSION_2_1  1
-#endif
-#if CL_TARGET_OPENCL_VERSION >= 200 && !defined(CL_VERSION_2_0)
-#define CL_VERSION_2_0  1
-#endif
-#if CL_TARGET_OPENCL_VERSION >= 120 && !defined(CL_VERSION_1_2)
-#define CL_VERSION_1_2  1
-#endif
-#if CL_TARGET_OPENCL_VERSION >= 110 && !defined(CL_VERSION_1_1)
-#define CL_VERSION_1_1  1
-#endif
-#if CL_TARGET_OPENCL_VERSION >= 100 && !defined(CL_VERSION_1_0)
-#define CL_VERSION_1_0  1
-#endif
+namespace image_transport {
+  class PublisherPlugin;
+  class SubscriberPlugin;
 
-/* Allow deprecated APIs for older OpenCL versions. */
-#if CL_TARGET_OPENCL_VERSION <= 210 && !defined(CL_USE_DEPRECATED_OPENCL_2_1_APIS)
-#define CL_USE_DEPRECATED_OPENCL_2_1_APIS
-#endif
-#if CL_TARGET_OPENCL_VERSION <= 200 && !defined(CL_USE_DEPRECATED_OPENCL_2_0_APIS)
-#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
-#endif
-#if CL_TARGET_OPENCL_VERSION <= 120 && !defined(CL_USE_DEPRECATED_OPENCL_1_2_APIS)
-#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
-#endif
-#if CL_TARGET_OPENCL_VERSION <= 110 && !defined(CL_USE_DEPRECATED_OPENCL_1_1_APIS)
-#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
-#endif
-#if CL_TARGET_OPENCL_VERSION <= 100 && !defined(CL_USE_DEPRECATED_OPENCL_1_0_APIS)
-#define CL_USE_DEPRECATED_OPENCL_1_0_APIS
-#endif
+  typedef pluginlib::ClassLoader<PublisherPlugin> PubLoader;
+  typedef boost::shared_ptr<PubLoader> PubLoaderPtr;
 
-#endif  /* __CL_VERSION_H */
+  typedef pluginlib::ClassLoader<SubscriberPlugin> SubLoader;
+  typedef boost::shared_ptr<SubLoader> SubLoaderPtr;
+}
+
+#endif

@@ -1,31 +1,30 @@
-#ifndef LOCAL_LAYER_H
-#define LOCAL_LAYER_H
+#include <ros/ros.h>
+#include <ros_autorunner_lib/ros_autorunner.h>
 
-#include "opencl.h"
-#include "image.h"
-#include "activations.h"
-#include "layer.h"
-#include "network.h"
+// Include subscribe message type
+#include <sensor_msgs/PointCloud2.h>
+#include <autoware_msgs/NDTStat.h>
+#include <autoware_msgs/DetectedObjectArray.h>
+#include <visualization_msgs/MarkerArray.h>
+#define TOTAL_STEP_NUM 5 // Need to change when total step number is changed
+#define SLEEP_PERIOD 1
 
-typedef layer local_layer;
+class RubisTestbedAutorunner : public AutorunnerBase{
+private:    
+    ros::NodeHandle     nh_;
+    ROSAutorunner        ros_autorunner_;
+private:
+    virtual void register_subscribers();
+private:
+    void points_raw_cb(const sensor_msgs::PointCloud2& msg);
+    void ndt_stat_cb(const autoware_msgs::NDTStat& msg);
+    void detection_cb(const autoware_msgs::DetectedObjectArray& msg);
+    void behavior_state_cb(const visualization_msgs::MarkerArray& msg);
 
-#ifdef GPU
-void forward_local_layer_gpu(local_layer layer, network net);
-void backward_local_layer_gpu(local_layer layer, network net);
-void update_local_layer_gpu(local_layer layer, update_args a);
-
-void push_local_layer(local_layer layer);
-void pull_local_layer(local_layer layer);
-#endif
-
-local_layer make_local_layer(int batch, int h, int w, int c, int n, int size, int stride, int pad, ACTIVATION activation);
-
-void forward_local_layer(const local_layer layer, network net);
-void backward_local_layer(local_layer layer, network net);
-void update_local_layer(local_layer layer, update_args a);
-
-void bias_output(float *output, float *biases, int batch, int n, int size);
-void backward_bias(float *bias_updates, float *delta, int batch, int n, int size);
-
-#endif
-
+public:
+    Sub_v               sub_v_;
+public:
+    RubisTestbedAutorunner() {}
+    RubisTestbedAutorunner(ros::NodeHandle nh) : nh_(nh){}
+    virtual void Run();
+};
