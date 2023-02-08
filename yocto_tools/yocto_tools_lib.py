@@ -115,16 +115,27 @@ def create_branch(branch_name, src_path):
     return
 
 def update_branch(branch_name, src_path):
+    # branch_name = 'origin/' + branch_name
+    # null_command = ' > /dev/null 2>&1'
+    
+    # os.system('git checkout -f '+branch_name+null_command)
+    # os.system('git reset --hard'+null_command)
+    # os.system('sudo rm -r *'+null_command)
+    # os.system('cp -r '+src_path+'/* .'+null_command)
+    # os.system('git add -A'+null_command)
+    # os.system('git commit -m \"Updated at +'+str(datetime.now())+'\"'+null_command)
+    # os.system('git push --force origin '+branch_name+null_command)
+    
     branch_name = 'origin/' + branch_name
     null_command = ' > /dev/null 2>&1'
     
-    os.system('git checkout -f '+branch_name+null_command)
-    os.system('git reset --hard'+null_command)
-    os.system('sudo rm -r *'+null_command)
-    os.system('cp -r '+src_path+'/* .'+null_command)
-    os.system('git add -A'+null_command)
-    os.system('git commit -m \"Updated at +'+str(datetime.now())+'\"'+null_command)
-    os.system('git push --force origin '+branch_name+null_command)
+    os.system('git checkout -f '+branch_name)
+    os.system('git reset --hard')
+    os.system('sudo rm -r *')
+    os.system('cp -r '+src_path+'/* .')
+    os.system('git add -A')
+    os.system('git commit -m \"Updated at +'+str(datetime.now())+'\"')
+    os.system('git push --force origin '+branch_name)
     
     return
 
