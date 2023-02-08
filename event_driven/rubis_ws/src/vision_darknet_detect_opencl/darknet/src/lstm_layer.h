@@ -1,20 +1,33 @@
-#ifndef LSTM_LAYER_H
-#define LSTM_LAYER_H
+#include <boost/shared_ptr.hpp>
+#include <nodelet/nodelet.h>
+#include <pluginlib/class_list_macros.h>
+#include <ros/ros.h>
 
-#include "activations.h"
-#include "layer.h"
-#include "network.h"
-#define USET
+#include "vesc_ackermann/ackermann_to_vesc.h"
 
-layer make_lstm_layer(int batch, int inputs, int outputs, int steps, int batch_normalize, int adam);
+namespace vesc_ackermann
+{
 
-void forward_lstm_layer(layer l, network net); 
-void update_lstm_layer(layer l, update_args a);
+class AckermannToVescNodelet: public nodelet::Nodelet
+{
+public:
 
-#ifdef GPU
-void forward_lstm_layer_gpu(layer l, network net);
-void backward_lstm_layer_gpu(layer l, network net);
-void update_lstm_layer_gpu(layer l, update_args a); 
+  AckermannToVescNodelet() {}
 
-#endif
-#endif
+private:
+
+  virtual void onInit(void);
+
+  boost::shared_ptr<AckermannToVesc> ackermann_to_vesc_;
+
+}; // class AckermannToVescNodelet
+
+void AckermannToVescNodelet::onInit()
+{
+  NODELET_DEBUG("Initializing ackermann to VESC nodelet");
+  ackermann_to_vesc_.reset(new AckermannToVesc(getNodeHandle(), getPrivateNodeHandle()));
+}
+
+} // namespace vesc_ackermann
+
+PLUGINLIB_EXPORT_CLASS(vesc_ackermann::AckermannToVescNodelet, nodelet::Nodelet);

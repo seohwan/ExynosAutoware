@@ -1,159 +1,250 @@
-#include "normalization_layer.h"
-#include "blas.h"
+///////////////////////////////////////////////////////////////////////////////
+// throttle will transform a topic to have a limited number of bytes per second
+//
+// Copyright (C) 2009, Morgan Quigley
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//   * Redistributions of source code must retain the above copyright notice,
+//     this list of conditions and the following disclaimer.
+//   * Redistributions in binary form must reproduce the above copyright
+//     notice, this list of conditions and the following disclaimer in the
+//     documentation and/or other materials provided with the distribution.
+//   * Neither the name of Stanford University nor the names of its
+//     contributors may be used to endorse or promote products derived from
+//     this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+/////////////////////////////////////////////////////////////////////////////
 
-#include <stdio.h>
 
-layer make_normalization_layer(int batch, int w, int h, int c, int size, float alpha, float beta, float kappa)
+// this could be made a lot smarter by trying to analyze and predict the
+// message stream density, etc., rather than just being greedy and stuffing
+// the output as fast as it can. 
+
+#include <cstdio>
+#include <cstdlib>
+#include <deque>
+#include "topic_tools/shape_shifter.h"
+#include "topic_tools/parse.h"
+
+using std::string;
+using std::vector;
+using std::deque;
+using namespace topic_tools;
+
+// TODO: move all these globals into a reasonable local scope
+ros::NodeHandle *g_node = NULL;
+uint32_t g_bps = 0; // bytes per second, not bits!
+ros::Duration g_period; // minimum inter-message period
+double g_window = 1.0; // 1 second window for starters
+bool g_advertised = false;
+string g_output_topic;
+string g_input_topic;
+ros::Publisher g_pub;
+ros::Subscriber* g_sub;
+bool g_use_messages;
+ros::Time g_last_time;
+bool g_use_wallclock;
+bool g_lazy;
+bool g_force_latch = false;
+bool g_force_latch_value = true;
+ros::TransportHints g_th;
+
+class Sent
 {
-    fprintf(stderr, "Local Response Normalization Layer: %d x %d x %d image, %d size\n", w,h,c,size);
-    layer layer = {0};
-    layer.type = NORMALIZATION;
-    layer.batch = batch;
-    layer.h = layer.out_h = h;
-    layer.w = layer.out_w = w;
-    layer.c = layer.out_c = c;
-    layer.kappa = kappa;
-    layer.size = size;
-    layer.alpha = alpha;
-    layer.beta = beta;
-    layer.output = (float*)calloc(h * w * c * batch, sizeof(float));
-    layer.delta = (float*)calloc(h * w * c * batch, sizeof(float));
-    layer.squared = (float*)calloc(h * w * c * batch, sizeof(float));
-    layer.norms = (float*)calloc(h * w * c * batch, sizeof(float));
-    layer.inputs = w*h*c;
-    layer.outputs = layer.inputs;
+public:
+  double t;
+  uint32_t len;
+  Sent(double _t, uint32_t _len) : t(_t), len(_len) { }
+};
+deque<Sent> g_sent;
 
-    layer.forward = forward_normalization_layer;
-    layer.backward = backward_normalization_layer;
-    #ifdef GPU
-    if (gpu_index >= 0) {
-        layer.forward_gpu = forward_normalization_layer_gpu;
-        layer.backward_gpu = backward_normalization_layer_gpu;
-        layer.update_gpu = 0;
-        layer.output_gpu = opencl_make_array(layer.output, h * w * c * batch);
-        layer.delta_gpu = opencl_make_array(layer.delta, h * w * c * batch);
-        layer.squared_gpu = opencl_make_array(layer.squared, h * w * c * batch);
-        layer.norms_gpu = opencl_make_array(layer.norms, h * w * c * batch);
+void conn_cb(const ros::SingleSubscriberPublisher&);
+void in_cb(const ros::MessageEvent<ShapeShifter>& msg_event);
+
+void subscribe()
+{
+  g_sub = new ros::Subscriber(g_node->subscribe(g_input_topic, 10, &in_cb, g_th));
+}
+
+void conn_cb(const ros::SingleSubscriberPublisher&)
+{
+  // If we're in lazy subscribe mode, and the first subscriber just
+  // connected, then subscribe, #3546
+  if(g_lazy && !g_sub)
+  {
+    ROS_DEBUG("lazy mode; resubscribing");
+    subscribe();
+  }
+}
+
+bool is_latching(const boost::shared_ptr<const ros::M_string>& connection_header)
+{
+  if (connection_header)
+  {
+    ros::M_string::const_iterator it = connection_header->find("latching");
+    if ((it != connection_header->end()) && (it->second == "1"))
+    {
+      ROS_DEBUG("input topic is latched; latching output topic to match");
+      return true;
     }
-    #endif
-    return layer;
+  }
+
+  return false;
 }
 
-void resize_normalization_layer(layer *layer, int w, int h)
+void in_cb(const ros::MessageEvent<ShapeShifter>& msg_event)
 {
-#ifdef GPU
-    if (gpu_index >= 0) {
-        opencl_free_gpu_only(layer->output_gpu);
-        opencl_free_gpu_only(layer->delta_gpu);
-        opencl_free_gpu_only(layer->squared_gpu);
-        opencl_free_gpu_only(layer->norms_gpu);
+  boost::shared_ptr<ShapeShifter const> const &msg = msg_event.getConstMessage();
+  boost::shared_ptr<const ros::M_string> const& connection_header = msg_event.getConnectionHeaderPtr();
+
+  if (!g_advertised)
+  {
+    const bool latch = g_force_latch ? g_force_latch_value : is_latching(connection_header);
+    g_pub = msg->advertise(*g_node, g_output_topic, 10, latch, conn_cb);
+    g_advertised = true;
+    printf("advertised as %s\n", g_output_topic.c_str());
+  }
+  // If we're in lazy subscribe mode, and nobody's listening, 
+  // then unsubscribe, #3546.
+  if(g_lazy && !g_pub.getNumSubscribers())
+  {
+    ROS_DEBUG("lazy mode; unsubscribing");
+    delete g_sub;
+    g_sub = NULL;
+  }
+  else
+  {
+    if(g_use_messages)
+    {
+      ros::Time now;
+      if(g_use_wallclock)
+        now.fromSec(ros::WallTime::now().toSec());
+      else
+        now = ros::Time::now();
+      if (g_last_time > now)
+      {
+        ROS_WARN("Detected jump back in time, resetting throttle period to now for.");
+        g_last_time = now;
+      }
+      if((now - g_last_time) > g_period)
+      {
+        g_pub.publish(msg);
+        g_last_time = now;
+      }
     }
-#endif
-    int c = layer->c;
-    int batch = layer->batch;
-    layer->h = h;
-    layer->w = w;
-    layer->out_h = h;
-    layer->out_w = w;
-    layer->inputs = w*h*c;
-    layer->outputs = layer->inputs;
-    layer->output = (float*)realloc(layer->output, h * w * c * batch * sizeof(float));
-    layer->delta = (float*)realloc(layer->delta, h * w * c * batch * sizeof(float));
-    layer->squared = (float*)realloc(layer->squared, h * w * c * batch * sizeof(float));
-    layer->norms = (float*)realloc(layer->norms, h * w * c * batch *sizeof(float));
-#ifdef GPU
-    if (gpu_index >= 0) {
-        layer->output_gpu = opencl_make_array(layer->output, h * w * c * batch);
-        layer->delta_gpu = opencl_make_array(layer->delta, h * w * c * batch);
-        layer->squared_gpu = opencl_make_array(layer->squared, h * w * c * batch);
-        layer->norms_gpu = opencl_make_array(layer->norms, h * w * c * batch);
+    else
+    {
+      // pop the front of the queue until it's within the window
+      ros::Time now;
+      if(g_use_wallclock)
+        now.fromSec(ros::WallTime::now().toSec());
+      else
+        now = ros::Time::now();
+      const double t = now.toSec();
+      while (!g_sent.empty() && g_sent.front().t < t - g_window)
+        g_sent.pop_front();
+      // sum up how many bytes are in the window
+      uint32_t bytes = 0;
+      for (deque<Sent>::iterator i = g_sent.begin(); i != g_sent.end(); ++i)
+        bytes += i->len;
+      if (bytes < g_bps)
+      {
+        g_pub.publish(msg);
+        g_sent.push_back(Sent(t, msg->size()));
+      }
     }
-#endif
+  }
 }
 
-void forward_normalization_layer(const layer layer, network net)
+#define USAGE "\nusage: \n"\
+           "  throttle messages IN_TOPIC MSGS_PER_SEC [OUT_TOPIC]]\n"\
+           "OR\n"\
+           "  throttle bytes IN_TOPIC BYTES_PER_SEC WINDOW [OUT_TOPIC]]\n\n"\
+           "  This program will drop messages from IN_TOPIC so that either: the \n"\
+           "  average bytes per second on OUT_TOPIC, averaged over WINDOW \n"\
+           "  seconds, remains below BYTES_PER_SEC, or: the minimum inter-message\n"\
+           "  period is 1/MSGS_PER_SEC. The messages are output \n"\
+           "  to OUT_TOPIC, or (if not supplied), to IN_TOPIC_throttle.\n\n"
+
+int main(int argc, char **argv)
 {
-    int k,b;
-    int w = layer.w;
-    int h = layer.h;
-    int c = layer.c;
-    scal_cpu(w*h*c*layer.batch, 0, layer.squared, 1);
+  if(argc < 3)
+  {
+    puts(USAGE);
+    return 1;
+  }
 
-    for(b = 0; b < layer.batch; ++b){
-        float *squared = layer.squared + w*h*c*b;
-        float *norms   = layer.norms + w*h*c*b;
-        float *input   = net.input + w*h*c*b;
-        pow_cpu(w*h*c, 2, input, 1, squared, 1);
+  g_input_topic = string(argv[2]);
 
-        const_cpu(w*h, layer.kappa, norms, 1);
-        for(k = 0; k < layer.size/2; ++k){
-            axpy_cpu(w*h, layer.alpha, squared + w*h*k, 1, norms, 1);
-        }
+  std::string topic_name;
+  if(!getBaseName(string(argv[2]), topic_name))
+    return 1;
 
-        for(k = 1; k < layer.c; ++k){
-            copy_cpu(w*h, norms + w*h*(k-1), 1, norms + w*h*k, 1);
-            int prev = k - ((layer.size-1)/2) - 1;
-            int next = k + (layer.size/2);
-            if(prev >= 0)      axpy_cpu(w*h, -layer.alpha, squared + w*h*prev, 1, norms + w*h*k, 1);
-            if(next < layer.c) axpy_cpu(w*h,  layer.alpha, squared + w*h*next, 1, norms + w*h*k, 1);
-        }
+  ros::init(argc, argv, topic_name + string("_throttle"),
+            ros::init_options::AnonymousName);
+  bool unreliable = false;
+  ros::NodeHandle pnh("~");
+  pnh.getParam("wall_clock", g_use_wallclock);
+  pnh.getParam("unreliable", unreliable);
+  pnh.getParam("lazy", g_lazy);
+  g_force_latch = pnh.getParam("force_latch", g_force_latch_value);
+
+  if (unreliable)
+    g_th.unreliable().reliable(); // Prefers unreliable, but will accept reliable.
+
+  if(!strcmp(argv[1], "messages"))
+    g_use_messages = true;
+  else if(!strcmp(argv[1], "bytes"))
+    g_use_messages = false;
+  else
+  {
+    puts(USAGE);
+    return 1;
+  }
+
+  if(g_use_messages && argc == 5)
+    g_output_topic = string(argv[4]);
+  else if(!g_use_messages && argc == 6)
+    g_output_topic = string(argv[5]);
+  else
+    g_output_topic = g_input_topic + "_throttle";
+
+  if(g_use_messages)
+  {
+    if(argc < 4)
+    {
+      puts(USAGE);
+      return 1;
     }
-    pow_cpu(w*h*c*layer.batch, -layer.beta, layer.norms, 1, layer.output, 1);
-    mul_cpu(w*h*c*layer.batch, net.input, 1, layer.output, 1);
-}
-
-void backward_normalization_layer(const layer layer, network net)
-{
-    // TODO This is approximate ;-)
-    // Also this should add in to delta instead of overwritting.
-
-    int w = layer.w;
-    int h = layer.h;
-    int c = layer.c;
-    pow_cpu(w*h*c*layer.batch, -layer.beta, layer.norms, 1, net.delta, 1);
-    mul_cpu(w*h*c*layer.batch, layer.delta, 1, net.delta, 1);
-}
-
-#ifdef GPU
-void forward_normalization_layer_gpu(const layer layer, network net)
-{
-    int k,b;
-    int w = layer.w;
-    int h = layer.h;
-    int c = layer.c;
-    scal_gpu(w*h*c*layer.batch, 0, layer.squared_gpu, 1);
-
-    for(b = 0; b < layer.batch; ++b){
-        cl_mem_ext squared = layer.squared_gpu;
-        cl_mem_ext norms   = layer.norms_gpu;
-        cl_mem_ext input   = net.input_gpu;
-        pow_gpu(w*h*c, 2, input, 1, squared, 1);
-
-        const_gpu(w*h, layer.kappa, norms, 1);
-        for(k = 0; k < layer.size/2; ++k){
-            axpy_offset_gpu(w*h, layer.alpha, squared, w*h*k, 1, norms, 0, 1);
-        }
-
-        for(k = 1; k < layer.c; ++k){
-            copy_offset_gpu(w*h, norms, w*h*(k-1), 1, norms, w*h*k, 1);
-            int prev = k - ((layer.size-1)/2) - 1;
-            int next = k + (layer.size/2);
-            if(prev >= 0)      axpy_offset_gpu(w*h, -layer.alpha, squared, w*h*prev, 1, norms, w*h*k, 1);
-            if(next < layer.c) axpy_offset_gpu(w*h,  layer.alpha, squared, w*h*next, 1, norms, w*h*k, 1);
-        }
+    g_period = ros::Duration(1.0/atof(argv[3]));
+  }
+  else
+  {
+    if(argc < 5)
+    {
+      puts(USAGE);
+      return 1;
     }
-    pow_gpu(w*h*c*layer.batch, -layer.beta, layer.norms_gpu, 1, layer.output_gpu, 1);
-    mul_gpu(w*h*c*layer.batch, net.input_gpu, 1, layer.output_gpu, 1);
+    g_bps = atoi(argv[3]);
+    g_window = atof(argv[4]);
+  }
+
+  ros::NodeHandle n;
+  g_node = &n;
+  subscribe();
+  ros::spin();
+  return 0;
 }
 
-void backward_normalization_layer_gpu(const layer layer, network net)
-{
-    // TODO This is approximate ;-)
-
-    int w = layer.w;
-    int h = layer.h;
-    int c = layer.c;
-    pow_gpu(w*h*c*layer.batch, -layer.beta, layer.norms_gpu, 1, net.delta_gpu, 1);
-    mul_gpu(w*h*c*layer.batch, layer.delta_gpu, 1, net.delta_gpu, 1);
-}
-#endif

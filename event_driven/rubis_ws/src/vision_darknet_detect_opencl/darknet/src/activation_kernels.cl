@@ -1,239 +1,150 @@
-#ifndef __ACTIVATION_KERNELS_CL__
-#define __ACTIVATION_KERNELS_CL__
+/*********************************************************************
+* Software License Agreement (BSD License)
+* 
+*  Copyright (c) 2009, Willow Garage, Inc.
+*  All rights reserved.
+* 
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions
+*  are met:
+* 
+*   * Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   * Redistributions in binary form must reproduce the above
+*     copyright notice, this list of conditions and the following
+*     disclaimer in the documentation and/or other materials provided
+*     with the distribution.
+*   * Neither the name of the Willow Garage nor the names of its
+*     contributors may be used to endorse or promote products derived
+*     from this software without specific prior written permission.
+* 
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+*  POSSIBILITY OF SUCH DAMAGE.
+*********************************************************************/
 
-static const char* const activation_kernels_source = CONVERT_KERNEL_TO_STRING(
+#ifndef POLLED_CAMERA_PUBLICATION_SERVER_H
+#define POLLED_CAMERA_PUBLICATION_SERVER_H
 
-float lhtan_activate_kernel(float x);
-float lhtan_gradient_kernel(float x);
-float hardtan_activate_kernel(float x);
-float linear_activate_kernel(float x);
-float logistic_activate_kernel(float x);
-float loggy_activate_kernel(float x);
-float relu_activate_kernel(float x);
-float elu_activate_kernel(float x);
-float selu_activate_kernel(float x);
-float relie_activate_kernel(float x);
-float ramp_activate_kernel(float x);
-float leaky_activate_kernel(float x);
-float tanh_activate_kernel(float x);
-float plse_activate_kernel(float x);
-float stair_activate_kernel(float x);
-float mish_activate_kernel(float x);
+#include <ros/ros.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
+#include "polled_camera/GetPolledImage.h"
 
-float hardtan_gradient_kernel(float x);
-float linear_gradient_kernel(float x);
-float logistic_gradient_kernel(float x);
-float loggy_gradient_kernel(float x);
-float relu_gradient_kernel(float x);
-float elu_gradient_kernel(float x);
-float selu_gradient_kernel(float x);
-float relie_gradient_kernel(float x);
-float ramp_gradient_kernel(float x);
-float leaky_gradient_kernel(float x);
-float tanh_gradient_kernel(float x);
-float plse_gradient_kernel(float x);
-float stair_gradient_kernel(float x);
-float mish_gradient_kernel(float x);
+#include <ros/macros.h>
 
-float softplus(float x);
+// Import/export for windows dll's and visibility for gcc shared libraries.
 
-typedef enum{
-    LOGISTIC, RELU, RELIE, LINEAR, RAMP, TANH, PLSE, LEAKY, ELU, LOGGY, STAIR, HARDTAN, LHTAN, SELU, MISH
-} ACTIVATION;
+#ifdef ROS_BUILD_SHARED_LIBS // ros is being built around shared libraries
+  #ifdef polled_camera_EXPORTS // we are building a shared lib/dll
+    #define POLLED_CAMERA_DECL ROS_HELPER_EXPORT
+  #else // we are using shared lib/dll
+    #define POLLED_CAMERA_DECL ROS_HELPER_IMPORT
+  #endif
+#else // ros is being built around static libraries
+  #define POLLED_CAMERA_DECL
+#endif
 
-float activate_kernel(float x, ACTIVATION a);
-float gradient_kernel(float x, ACTIVATION a);
+namespace polled_camera {
 
-float lhtan_activate_kernel(float x)
+/**
+ * \brief Manage image requests from one or more clients.
+ *
+ * Instances of polled_camera::PublicationServer should be created using one of
+ * the overloads of polled_camera::advertise(). You must specify a driver
+ * callback that populates the requested data:
+\code
+void callback(polled_camera::GetPolledImage::Request& req,
+              polled_camera::GetPolledImage::Response& rsp,
+              sensor_msgs::Image& image, sensor_msgs::CameraInfo& info)
 {
-    if(x < 0) return .001f*x;
-    if(x > 1) return .001f*(x-1.f) + 1.f;
-    return x;
+  // Capture an image and fill in the Image and CameraInfo messages here.
+  
+  // On success, set rsp.success = true. rsp.timestamp will be filled in
+  // automatically.
+  
+  // On failure, set rsp.success = false and fill rsp.status_message with an
+  // informative error message.
 }
-float lhtan_gradient_kernel(float x)
+\endcode
+ */
+class POLLED_CAMERA_DECL PublicationServer
 {
-    if(x > 0 && x < 1) return 1;
-    return .001;
-}
+public:
+  typedef boost::function<void (polled_camera::GetPolledImage::Request&,
+                                polled_camera::GetPolledImage::Response&,
+                                sensor_msgs::Image&,
+                                sensor_msgs::CameraInfo&)> DriverCallback;
+  
+  PublicationServer() {}
 
-float hardtan_activate_kernel(float x)
+  /**
+   * \brief Unadvertise the request service and shut down all published topics.
+   */
+  void shutdown();
+
+  std::string getService() const;
+
+  operator void*() const;
+  bool operator< (const PublicationServer& rhs) const { return impl_ <  rhs.impl_; }
+  bool operator==(const PublicationServer& rhs) const { return impl_ == rhs.impl_; }
+  bool operator!=(const PublicationServer& rhs) const { return impl_ != rhs.impl_; }
+
+private:
+  PublicationServer(const std::string& service, ros::NodeHandle& nh,
+                    const DriverCallback& cb, const ros::VoidPtr& tracked_object);
+
+  class Impl;
+
+  boost::shared_ptr<Impl> impl_;
+
+  friend
+  PublicationServer advertise(ros::NodeHandle&, const std::string&, const DriverCallback&,
+                              const ros::VoidPtr&);
+};
+
+/**
+ * \brief Advertise a polled image service, version for arbitrary boost::function object.
+ */
+PublicationServer advertise(ros::NodeHandle& nh, const std::string& service,
+                            const PublicationServer::DriverCallback& cb,
+                            const ros::VoidPtr& tracked_object = ros::VoidPtr());
+
+/**
+ * \brief Advertise a polled image service, version for class member function with bare pointer.
+ */
+template<class T>
+PublicationServer advertise(ros::NodeHandle& nh, const std::string& service,
+                            void(T::*fp)(polled_camera::GetPolledImage::Request&,
+                                         polled_camera::GetPolledImage::Response&,
+                                         sensor_msgs::Image&, sensor_msgs::CameraInfo&),
+                            T* obj)
 {
-    if (x < -1) return -1;
-    if (x > 1) return 1;
-    return x;
+  return advertise(nh, service, boost::bind(fp, obj, _1, _2, _3, _4));
 }
 
-float linear_activate_kernel(float x){return x;}
-float logistic_activate_kernel(float x){return 1.f/(1.f + exp(-x));}
-float loggy_activate_kernel(float x){return 2.f/(1.f + exp(-x)) - 1;}
-float relu_activate_kernel(float x){return x*(x>0);}
-float elu_activate_kernel(float x){return (x >= 0)*x + (x < 0)*(exp(x)-1);}
-float selu_activate_kernel(float x){return (x >= 0)*1.0507f*x + (x < 0)*1.0507f*1.6732f*(exp(x)-1);}
-float relie_activate_kernel(float x){return (x>0) ? x : .01f*x;}
-float ramp_activate_kernel(float x){return x*(x>0)+.1f*x;}
-float leaky_activate_kernel(float x){return (x>0) ? x : .1f*x;}
-float tanh_activate_kernel(float x){return (2.f/(1 + exp(-2*x)) - 1);}
-
-float plse_activate_kernel(float x)
+/**
+ * \brief Advertise a polled image service, version for class member function with bare pointer.
+ */
+template<class T>
+PublicationServer advertise(ros::NodeHandle& nh, const std::string& service,
+                            void(T::*fp)(polled_camera::GetPolledImage::Request&,
+                                         polled_camera::GetPolledImage::Response&,
+                                         sensor_msgs::Image&, sensor_msgs::CameraInfo&),
+                            const boost::shared_ptr<T>& obj)
 {
-    if(x < -4) return .01f * (x + 4);
-    if(x > 4)  return .01f * (x - 4) + 1;
-    return .125f*x + .5f;
+  return advertise(nh, service, boost::bind(fp, obj.get(), _1, _2, _3, _4), obj);
 }
 
-float stair_activate_kernel(float x)
-{
-    int n = floor(x);
-    if (n%2 == 0) return floor(x/2);
-    else return (x - n) + floor(x/2);
-}
-
-float hardtan_gradient_kernel(float x)
-{
-    if (x > -1 && x < 1) return 1;
-    return 0;
-}
-
-float linear_gradient_kernel(float x){return 1;}
-float logistic_gradient_kernel(float x){return (1-x)*x;}
-
-float loggy_gradient_kernel(float x)
-{
-    float y = (x+1)/2;
-    return 2*(1-y)*y;
-}
-
-float relu_gradient_kernel(float x){return (x>0);}
-float elu_gradient_kernel(float x){return (x >= 0) + (x < 0)*(x + 1);}
-float selu_gradient_kernel(float x){return (x >= 0)*1.0507 + (x < 0)*(x + 1.0507*1.6732);}
-float relie_gradient_kernel(float x){return (x>0) ? 1 : .01f;}
-float ramp_gradient_kernel(float x){return (x>0)+.1f;}
-float leaky_gradient_kernel(float x){return (x>0) ? 1 : .1f;}
-float tanh_gradient_kernel(float x){return 1-x*x;}
-float plse_gradient_kernel(float x){return (x < 0 || x > 1) ? .01f : .125f;}
-
-float stair_gradient_kernel(float x)
-{
-    if (floor(x) == x) return 0;
-    return 1;
-}
-
-float softplus(float x) {
-    float t = 27;
-    if (x >  t) return x;
-    if (x < -t) return exp(x);
-    return log1p(exp(x));
-}
-
-float mish_activate_kernel(float x) {
-    //https://arxiv.org/abs/1908.08681v1
-    float c = softplus(x);
-    float a = x * tanh(c);
-    return a;
-}
-
-float mish_gradient_kernel(float x) {
-    //https://arxiv.org/abs/1908.08681v1
-    //float d = 2*exp(2*x) + exp(2*x) + 2;
-    //float w = 4*(x+1) + 4*exp(2*x) + exp(3*x) + exp(x*(4*x+6));
-    //float g = exp(x) * w / pow(d,2);
-    //return g;
-    float sp = softplus(x);
-    float g_sp = -expm1(-sp);
-    float tsp = tanh(sp);
-    float g_tsp = (1 - tsp*tsp) * g_sp;
-    float g = x * g_tsp / tsp;
-    return g;
-}
-
-float activate_kernel(float x, ACTIVATION a)
-{
-    switch(a){
-        case LINEAR:
-            return linear_activate_kernel(x);
-        case LOGISTIC:
-            return logistic_activate_kernel(x);
-        case LOGGY:
-            return loggy_activate_kernel(x);
-        case RELU:
-            return relu_activate_kernel(x);
-        case ELU:
-            return elu_activate_kernel(x);
-        case SELU:
-            return selu_activate_kernel(x);
-        case RELIE:
-            return relie_activate_kernel(x);
-        case RAMP:
-            return ramp_activate_kernel(x);
-        case LEAKY:
-            return leaky_activate_kernel(x);
-        case TANH:
-            return tanh_activate_kernel(x);
-        case PLSE:
-            return plse_activate_kernel(x);
-        case STAIR:
-            return stair_activate_kernel(x);
-        case HARDTAN:
-            return hardtan_activate_kernel(x);
-        case LHTAN:
-            return lhtan_activate_kernel(x);
-        case MISH:
-            return mish_activate_kernel(x);
-        default: relu_activate_kernel(x);
-    }
-    return 0;
-}
-
-float gradient_kernel(float x, ACTIVATION a)
-{
-    switch(a){
-        case LINEAR:
-            return linear_gradient_kernel(x);
-        case LOGISTIC:
-            return logistic_gradient_kernel(x);
-        case LOGGY:
-            return loggy_gradient_kernel(x);
-        case RELU:
-            return relu_gradient_kernel(x);
-        case ELU:
-            return elu_gradient_kernel(x);
-        case SELU:
-            return selu_gradient_kernel(x);
-        case RELIE:
-            return relie_gradient_kernel(x);
-        case RAMP:
-            return ramp_gradient_kernel(x);
-        case LEAKY:
-            return leaky_gradient_kernel(x);
-        case TANH:
-            return tanh_gradient_kernel(x);
-        case PLSE:
-            return plse_gradient_kernel(x);
-        case STAIR:
-            return stair_gradient_kernel(x);
-        case HARDTAN:
-            return hardtan_gradient_kernel(x);
-        case LHTAN:
-            return lhtan_gradient_kernel(x);
-        case MISH:
-            return mish_gradient_kernel(x);
-        default: relu_gradient_kernel(x);
-    }
-    return 0;
-}
-
-__kernel void activate_array_kernel(__global float *x, int offset, int n, ACTIVATION a)
-{
-    int i = (get_group_id(0) + get_group_id(1)*get_num_groups(0)) * get_local_size(0) + get_local_id(0);
-    if(i < n) x[i + offset] = activate_kernel(x[i + offset], a);
-}
-
-__kernel void gradient_array_kernel(__global float *x, int offset, int n, ACTIVATION a, __global float *delta)
-{
-    int i = (get_group_id(0) + get_group_id(1)*get_num_groups(0)) * get_local_size(0) + get_local_id(0);
-    if(i < n) delta[i + offset] *= gradient_kernel(x[i + offset], a);
-}
-
-);
+} //namespace polled_camera
 
 #endif

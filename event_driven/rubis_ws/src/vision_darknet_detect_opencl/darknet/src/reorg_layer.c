@@ -1,181 +1,98 @@
-#include "reorg_layer.h"
-#include "opencl.h"
-#include "blas.h"
+#include <ros/ros.h>
+#include <vector>
+#include "inertiallabs_msgs/ins_data.h"
+#include <tf/transform_listener.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/TwistStamped.h>
 
-#include <stdio.h>
+#define M_PI           3.14159265358979323846
+// #define DEBUG
 
+double ins_yaw = 0, ndt_yaw = 0;
+bool is_done = 0;
 
-layer make_reorg_layer(int batch, int w, int h, int c, int stride, int reverse, int flatten, int extra)
-{
-    layer l = { 0 };
-    l.type = REORG;
-    l.batch = batch;
-    l.stride = stride;
-    l.extra = extra;
-    l.h = h;
-    l.w = w;
-    l.c = c;
-    l.flatten = flatten;
-    if(reverse){
-        l.out_w = w*stride;
-        l.out_h = h*stride;
-        l.out_c = c/(stride*stride);
-    }else{
-        l.out_w = w/stride;
-        l.out_h = h/stride;
-        l.out_c = c*(stride*stride);
-    }
-    l.reverse = reverse;
+void ins_callback(const inertiallabs_msgs::ins_dataConstPtr msg){
+    double roll, pitch, yaw;
 
-    l.outputs = l.out_h * l.out_w * l.out_c;
-    l.inputs = h*w*c;
-    if(l.extra){
-        l.out_w = l.out_h = l.out_c = 0;
-        l.outputs = l.inputs + l.extra;
-    }
+    roll = msg->YPR.z;
+    pitch = msg->YPR.y;
+    yaw = msg->YPR.x;
+    
+    yaw *= -1;
+    if(yaw > 180.0) yaw -= 360.0;
+    if(yaw < -180.0) yaw += 360.0;
 
-    if(extra){
-        fprintf(stderr, "reorg              %4d   ->  %4d\n",  l.inputs, l.outputs);
-    } else {
-        fprintf(stderr, "reorg              /%2d  %4d x%4d x%4d   ->  %4d x%4d x%4d\n",  stride, w, h, c, l.out_w, l.out_h, l.out_c);
-    }
-    int output_size = l.outputs * batch;
-    l.output = (float*)calloc(output_size, sizeof(float));
-    l.delta = (float*)calloc(output_size, sizeof(float));
+    #ifdef DEBUG
+        std::cout<<"# INS RPY: "<<roll<<" "<<pitch<<" "<<yaw<<std::endl;
+    #endif
 
-    l.forward = forward_reorg_layer;
-    l.backward = backward_reorg_layer;
-#ifdef GPU
-    if (gpu_index >= 0) {
-        l.forward_gpu = forward_reorg_layer_gpu;
-        l.backward_gpu = backward_reorg_layer_gpu;
-        l.update_gpu = 0;
-        l.output_gpu = opencl_make_array(l.output, output_size);
-        l.delta_gpu = opencl_make_array(l.delta, output_size);
-    }
-#endif
-    return l;
+    double velocity;
+    velocity = sqrt(pow(msg->Vel_ENU.x,2) + pow(msg->Vel_ENU.y,2) + pow(msg->Vel_ENU.z,2)) * 3.6;
+
+    #ifdef DEBUG
+        std::cout<<"# INS Vel: "<<velocity<<" "<<msg->Vel_ENU.x<<" "<<msg->Vel_ENU.y<<" "<<msg->Vel_ENU.z<<std::endl;
+    #endif
+    ins_yaw = yaw;
 }
 
-void resize_reorg_layer(layer *l, int w, int h)
-{
-    int stride = l->stride;
-    int c = l->c;
+int main(int argc, char* argv[]){
+    ros::init(argc, argv, "yaw_offset_calculator");
+    ros::NodeHandle nh;
 
-    l->h = h;
-    l->w = w;
+    ros::Subscriber sub1  = nh.subscribe("/Inertial_Labs/ins_data", 1, ins_callback);
+    
+    tf::TransformListener listener;
 
-    if(l->reverse){
-        l->out_w = w*stride;
-        l->out_h = h*stride;
-        l->out_c = c/(stride*stride);
-    }else{
-        l->out_w = w/stride;
-        l->out_h = h/stride;
-        l->out_c = c*(stride*stride);
+    int cnt = 0, n = 50;
+    double prev_yaw_diff = 0;
+    std::vector<double> yaw_diff_vec;
+
+    ros::Rate rate(10);
+    while(nh.ok()){
+        tf::StampedTransform tf;
+        try{
+            listener.lookupTransform("/map", "/base_link", ros::Time(0), tf);
+            auto q = tf.getRotation();
+            tf::Matrix3x3 m(q);
+            double tf_roll, tf_pitch, tf_yaw;
+            m.getRPY(tf_roll, tf_pitch, tf_yaw);
+
+            tf_roll *= 180/M_PI;
+            tf_pitch *= 180/M_PI;
+            tf_yaw *= 180/M_PI;
+
+            #ifdef DEBUG
+                std::cout<<"## TF RPY: "<<tf_roll<<" "<<tf_pitch<<" "<<tf_yaw<<std::endl;            
+                std::cout<<"## ins yaw - tf yaw: "<<ins_yaw-tf_yaw<<std::endl<<std::endl;
+            #endif
+
+            double yaw_diff = ins_yaw - tf_yaw;
+            
+            if(cnt++ > 10){
+                yaw_diff_vec.push_back(yaw_diff);
+                if(prev_yaw_diff - yaw_diff > 5.0){
+                    std::cout<<"[ERROR] NDT matching fail!"<<std::endl;
+                    exit(1);
+                }
+            }            
+
+            if(yaw_diff_vec.size() == n){
+                double avg = 0.0;
+                for(int i = 0; i < yaw_diff_vec.size(); i++)
+                    avg += yaw_diff_vec[i];
+                avg = avg / (double)(yaw_diff_vec.size());
+                std::cout<<"[RESULT] Yaw offset: "<<avg<<std::endl;
+                break;
+            }
+
+            prev_yaw_diff = yaw_diff;
+        }
+        catch(tf::TransformException ex){
+
+        }
+        ros::spinOnce();
+        rate.sleep();
     }
 
-#ifdef GPU
-    if (gpu_index >= 0) {
-        opencl_free_gpu_only(l->output_gpu);
-        opencl_free_gpu_only(l->delta_gpu);
-    }
-#endif
-    l->outputs = l->out_h * l->out_w * l->out_c;
-    l->inputs = l->outputs;
-    int output_size = l->outputs * l->batch;
-	
-    l->output = (float*)realloc(l->output, output_size*sizeof(float));
-    l->delta = (float*)realloc(l->delta, output_size*sizeof(float));
-
-#ifdef GPU
-    if (gpu_index >= 0) {
-        l->output_gpu = opencl_make_array(l->output, output_size);
-        l->delta_gpu = opencl_make_array(l->delta, output_size);
-    }
-#endif
+    return 0;
 }
-
-void forward_reorg_layer(const layer l, network net)
-{
-    int i;
-    if(l.flatten){
-        memcpy(l.output, net.input, l.outputs*l.batch*sizeof(float));
-        if(l.reverse){
-            flatten(l.output, l.w*l.h, l.c, l.batch, 0);
-        }else{
-            flatten(l.output, l.w*l.h, l.c, l.batch, 1);
-        }
-    } else if (l.extra) {
-        for(i = 0; i < l.batch; ++i){
-            copy_cpu(l.inputs, net.input + i*l.inputs, 1, l.output + i*l.outputs, 1);
-        }
-    } else if (l.reverse){
-        reorg_cpu(net.input, l.w, l.h, l.c, l.batch, l.stride, 1, l.output);
-    } else {
-        reorg_cpu(net.input, l.w, l.h, l.c, l.batch, l.stride, 0, l.output);
-    }
-}
-
-void backward_reorg_layer(const layer l, network net)
-{
-    int i;
-    if(l.flatten){
-        memcpy(net.delta, l.delta, l.outputs*l.batch*sizeof(float));
-        if(l.reverse){
-            flatten(net.delta, l.w*l.h, l.c, l.batch, 1);
-        }else{
-            flatten(net.delta, l.w*l.h, l.c, l.batch, 0);
-        }
-    } else if(l.reverse){
-        reorg_cpu(l.delta, l.w, l.h, l.c, l.batch, l.stride, 0, net.delta);
-    } else if (l.extra) {
-        for(i = 0; i < l.batch; ++i){
-            copy_cpu(l.inputs, l.delta + i*l.outputs, 1, net.delta + i*l.inputs, 1);
-        }
-    }else{
-        reorg_cpu(l.delta, l.w, l.h, l.c, l.batch, l.stride, 1, net.delta);
-    }
-}
-
-#ifdef GPU
-void forward_reorg_layer_gpu(layer l, network net)
-{
-    int i;
-    if(l.flatten){
-        if(l.reverse){
-            flatten_gpu(net.input_gpu, l.w*l.h, l.c, l.batch, 0, l.output_gpu);
-        }else{
-            flatten_gpu(net.input_gpu, l.w*l.h, l.c, l.batch, 1, l.output_gpu);
-        }
-    } else if (l.extra) {
-        for(i = 0; i < l.batch; ++i){
-            copy_offset_gpu(l.inputs, net.input_gpu, i*l.inputs, 1, l.output_gpu, i*l.outputs, 1);
-        }
-    } else if (l.reverse) {
-        reorg_gpu(net.input_gpu, l.w, l.h, l.c, l.batch, l.stride, 1, l.output_gpu);
-    }else {
-        reorg_gpu(net.input_gpu, l.w, l.h, l.c, l.batch, l.stride, 0, l.output_gpu);
-    }
-}
-
-void backward_reorg_layer_gpu(layer l, network net)
-{
-    if(l.flatten){
-        if(l.reverse){
-            flatten_gpu(l.delta_gpu, l.w*l.h, l.c, l.batch, 1, net.delta_gpu);
-        }else{
-            flatten_gpu(l.delta_gpu, l.w*l.h, l.c, l.batch, 0, net.delta_gpu);
-        }
-    } else if (l.extra) {
-        int i;
-        for(i = 0; i < l.batch; ++i){
-            copy_offset_gpu(l.inputs, l.delta_gpu, i*l.outputs, 1, net.delta_gpu, i*l.inputs, 1);
-        }
-    } else if(l.reverse){
-        reorg_gpu(l.delta_gpu, l.w, l.h, l.c, l.batch, l.stride, 0, net.delta_gpu);
-    } else {
-        reorg_gpu(l.delta_gpu, l.w, l.h, l.c, l.batch, l.stride, 1, net.delta_gpu);
-    }
-}
-#endif

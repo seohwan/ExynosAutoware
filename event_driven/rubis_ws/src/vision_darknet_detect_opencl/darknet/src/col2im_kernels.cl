@@ -1,45 +1,109 @@
-#ifndef __COL2IM_KERNELS_CL__
-#define __COL2IM_KERNELS_CL__
+#ifndef NMEA2TFPOSE_CORE_H
+#define NMEA2TFPOSE_CORE_H
 
-// The comment-out cuda code is from the src, and I would like to port to
-// opencl kernel code as below.
+// C++ includes
+#include <string>
+#include <memory>
+#include <cstdlib>
+#include <ctime>
+#include <cmath>
 
-// src: https://github.com/BVLC/caffe/blob/master/src/caffe/util/im2col.cu
-// You may also want to read: https://github.com/BVLC/caffe/blob/master/LICENSE
+// ROS includes
+#include <ros/ros.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <nmea_msgs/Sentence.h>
+#include <tf/transform_broadcaster.h>
+#include <sensor_msgs/Imu.h>
+#include <gnss/geo_pos_conv.hpp>
+#include <geometry_msgs/TwistStamped.h>
+#include <tf/tf.h>
+#include <tf/transform_listener.h>
+#include <eigen3/Eigen/Eigen>
+#include <rubis_lib/sched.hpp>
 
-static const char* const col2im_kernel_source = CONVERT_KERNEL_TO_STRING(
+namespace gnss_localizer
+{
+struct Pose
+{
+    double x;
+    double y;
+    double z;
+    double roll;
+    double pitch;
+    double yaw;
+};
 
-__kernel void col2im_gpu_kernel(int n, __global float* data_col,
-                                int height, int width, int ksize,
-                                int pad,
-                                int stride,
-                                int height_col, int width_col,
-                                __global float *data_im,
-                                int col_offset,
-                                int img_offset) {
-    int index = get_global_id(1) * get_global_size(0) + get_global_id(0);
-    for(; index < n; index += get_global_size(1) * get_global_size(0)){
-        float val = 0;
-        int w = index % width + pad;
-        int h = (index / width) % height + pad;
-        int c = index / (width * height);
-        // compute the start and end of the output
-        int w_col_start = (w < ksize) ? 0 : (w - ksize) / stride + 1;
-        int w_col_end = min(w / stride + 1, width_col);
-        int h_col_start = (h < ksize) ? 0 : (h - ksize) / stride + 1;
-        int h_col_end = min(h / stride + 1, height_col);
-        // equivalent implementation
-        int offset =
-            (c * ksize * ksize + h * ksize + w) * height_col * width_col;
-        int coeff_h_col = (1 - stride * ksize * height_col) * width_col;
-        int coeff_w_col = (1 - stride * height_col * width_col);
-        for (int h_col = h_col_start; h_col < h_col_end; ++h_col) {
-            for (int w_col = w_col_start; w_col < w_col_end; ++w_col) {
-                val += data_col[col_offset + offset + h_col * coeff_h_col + w_col * coeff_w_col];
-            }
-        }
-        data_im[img_offset + index] += val;
-    }
-}
-);
-#endif
+class Nmea2TFPoseNode
+{
+public:
+  Nmea2TFPoseNode();
+  ~Nmea2TFPoseNode();
+
+  void run();
+
+private:
+  // handle
+  ros::NodeHandle nh_;
+  ros::NodeHandle private_nh_;
+
+  // publisher
+  ros::Publisher pub1_, pub2_;
+  ros::Publisher vel_pub_;
+
+  // subscriber
+  ros::Subscriber sub1_;
+  ros::Subscriber sub2_;
+
+  // constants
+  const std::string MAP_FRAME_;
+  const std::string GPS_FRAME_;
+
+  // variables
+  int32_t plane_number_;
+  geo_pos_conv geo_;
+  geo_pos_conv last_geo_;
+  double roll_, pitch_, yaw_;
+  double orientation_time_, position_time_, current_time_, prev_time_;
+  ros::Time orientation_stamp_;
+  tf::TransformBroadcaster br_;
+  bool orientation_ready_;  // true if position history is long enough to compute orientation
+  geometry_msgs::TwistStamped gnss_vel_;
+  geometry_msgs::PoseStamped cur_pose_;
+  Pose cur_pose_data_, prev_pose_data_;
+  tf::TransformListener listener_;
+  tf::StampedTransform transform_;
+
+  // about noise
+  bool enable_noise_;
+  double max_noise_;
+
+  // custom offset
+  bool enable_offset_;
+  double offset_bx_, offset_by_, offset_theta_;
+  Eigen::Matrix<double, 3, 3> T_offset_;
+  Eigen::Matrix<double, 3, 3> T_offset_inv_;
+  Eigen::Matrix<double, 3, 3> T_;
+
+  // callbacks
+  void callbackFromNmeaSentence(const nmea_msgs::Sentence::ConstPtr &msg);
+  void callbackFromIMU(const sensor_msgs::Imu& msg);
+
+  // initializer
+  void initForROS();
+  void InitTF();
+
+  // functions
+  void publishPoseStamped();
+  void publishTF();
+  void publishVelocity();
+  void createOrientation();
+  void convert(std::vector<std::string> nmea, ros::Time current_stamp);
+  void TransformPose(const geometry_msgs::PoseStamped &in_pose, geometry_msgs::PoseStamped& out_pose, const tf::StampedTransform &in_transform);
+  void createTransformationOffsetMatrix();
+  void createTransformationMatrix(std::vector<double>& transformation_vec);
+};
+
+std::vector<std::string> split(const std::string &string);
+
+}  // namespace gnss_localizer
+#endif  // NMEA2TFPOSE_CORE_H

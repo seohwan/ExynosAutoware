@@ -1,67 +1,122 @@
-#include <stdlib.h> 
-#include <string.h>
+// -*- mode:c++; fill-column: 100; -*-
 
-#include "im2col.h"
-#include "opencl.h"
-#include "im2col_kernels.cl"
+#ifndef VESC_DRIVER_VESC_INTERFACE_H_
+#define VESC_DRIVER_VESC_INTERFACE_H_
 
-#ifdef GPU
+#include <string>
+#include <sstream>
+#include <exception>
+#include <stdexcept>
 
-cl_program* opencl_im2col_kernels_program;
-cl_kernel* opencl_im2col_gpu_kernel;
+#include <boost/function.hpp>
+#include <boost/noncopyable.hpp>
+#include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 
-void im2col_kernel_init(void)
+#include "vesc_driver/vesc_packet.h"
+
+namespace vesc_driver
 {
-    if (opencl_device_id_t == 0) {
-        opencl_im2col_kernels_program = (cl_program*)calloc(opencl_device_ct_t, sizeof(cl_program));
-        opencl_im2col_gpu_kernel = (cl_kernel*)calloc(opencl_device_ct_t, sizeof(cl_kernel));
-    }
 
-    opencl_load_buffer(im2col_kernel_source, strlen(im2col_kernel_source), &opencl_im2col_kernels_program[opencl_device_id_t]);
-    opencl_create_kernel(&opencl_im2col_kernels_program[opencl_device_id_t], "im2col_gpu_kernel", &opencl_im2col_gpu_kernel[opencl_device_id_t]);
-}
-
-void im2col_kernel_release(void)
+/**
+ * Class providing an interface to the Vedder VESC motor controller via a serial port interface.
+ */
+class VescInterface : private boost::noncopyable
 {
-    clReleaseKernel(opencl_im2col_gpu_kernel[opencl_device_id_t]); opencl_im2col_gpu_kernel[opencl_device_id_t] = 0;
-    clReleaseProgram(opencl_im2col_kernels_program[opencl_device_id_t]); opencl_im2col_kernels_program[opencl_device_id_t] = 0;
+public:
 
-    if (opencl_device_id_t == opencl_device_ct_t-1) {
-	free(opencl_im2col_kernels_program);
-        free(opencl_im2col_gpu_kernel);
-    }
-}
+  typedef boost::function<void (const VescPacketConstPtr&)> PacketHandlerFunction;
+  typedef boost::function<void (const std::string&)> ErrorHandlerFunction;
 
-// src: https://github.com/BVLC/caffe/blob/master/src/caffe/util/im2col.cu
-// You may also want to read: https://github.com/BVLC/caffe/blob/master/LICENSE
+  /**
+   * Creates a VescInterface object. Opens the serial port interface to the VESC if @p port is not
+   * empty, otherwise the serial port remains closed until connect() is called.
+   *
+   * @param port Address of the serial port, e.g. '/dev/ttyUSB0'.
+   * @param packet_handler Function this class calls when a VESC packet is received.
+   * @param error_handler Function this class calls when an error is detected, such as a bad
+   *                      checksum.
+   *
+   * @throw SerialException
+   */
+  VescInterface(const std::string& port = std::string(),
+                const PacketHandlerFunction& packet_handler = PacketHandlerFunction(),
+                const ErrorHandlerFunction& error_handler = ErrorHandlerFunction());
 
-void im2col_gpu(cl_mem im, int offset,
-                int channels, int height, int width,
-                int ksize, int stride, int pad, cl_mem data_col){
-    // We are going to launch channels * height_col * width_col kernels, each
-    // kernel responsible for copying a single-channel grid.
-    int height_col = (height + 2 * pad - ksize) / stride + 1;
-    int width_col = (width + 2 * pad - ksize) / stride + 1;
-    int num_kernels = channels * height_col * width_col;
+  /**
+   * VescInterface destructor.
+   */
+  ~VescInterface();
 
-    dim2 dimGrid;
-    dimGrid = dim2_create(num_kernels, 1);
+  /**
+   * Sets / updates the function that this class calls when a VESC packet is received.
+   */
+  void setPacketHandler(const PacketHandlerFunction& handler);
 
-    int zero = 0;
+  /**
+   * Sets / updates the function that this class calls when an error is detected, such as a bad
+   * checksum.
+   */
+  void setErrorHandler(const ErrorHandlerFunction& handler);
 
-    opencl_kernel(opencl_im2col_gpu_kernel[opencl_device_id_t], dimGrid, 24,
-        &num_kernels, sizeof(cl_int),
-        &im, sizeof(cl_mem),
-        &height, sizeof(cl_int),
-        &width, sizeof(cl_int),
-        &ksize, sizeof(cl_int),
-        &pad, sizeof(cl_int),
-        &stride, sizeof(cl_int),
-        &height_col, sizeof(cl_int),
-        &width_col, sizeof(cl_int),
-        &data_col, sizeof(cl_mem),
-        &zero, sizeof(cl_int),
-        &offset, sizeof(cl_int));
-}
+  /**
+   * Opens the serial port interface to the VESC.
+   *
+   * @throw SerialException
+   */
+  void connect(const std::string& port);
 
-#endif // GPU
+  /**
+   * Closes the serial port interface to the VESC.
+   */
+  void disconnect();
+
+  /**
+   * Gets the status of the serial interface to the VESC.
+   *
+   * @return Returns true if the serial port is open, false otherwise.
+   */
+  bool isConnected() const;
+
+  /**
+   * Send a VESC packet.
+   */
+  void send(const VescPacket& packet);
+
+  void requestFWVersion();
+  void requestState();
+  void setDutyCycle(double duty_cycle);
+  void setCurrent(double current);
+  void setBrake(double brake);
+  void setSpeed(double speed);
+  void setPosition(double position);
+  void setServo(double servo);
+
+private:
+  // Pimpl - hide serial port members from class users
+  class Impl;
+  boost::scoped_ptr<Impl> impl_;
+};
+
+// todo: review
+class SerialException : public std::exception
+{
+  // Disable copy constructors
+  SerialException& operator=(const SerialException&);
+  std::string e_what_;
+public:
+  SerialException (const char *description) {
+      std::stringstream ss;
+      ss << "SerialException " << description << " failed.";
+      e_what_ = ss.str();
+  }
+  SerialException (const SerialException& other) : e_what_(other.e_what_) {}
+  virtual ~SerialException() throw() {}
+  virtual const char* what () const throw () {
+    return e_what_.c_str();
+  }
+};
+
+} // namespace vesc_driver
+
+#endif // VESC_DRIVER_VESC_INTERFACE_H_

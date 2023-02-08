@@ -1,81 +1,148 @@
-/*******************************************************************************
- * Copyright (c) 2018-2020 The Khronos Group Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- ******************************************************************************/
+/*********************************************************************
+* Software License Agreement (BSD License)
+* 
+*  Copyright (c) 2009, Willow Garage, Inc.
+*  All rights reserved.
+* 
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions
+*  are met:
+* 
+*   * Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   * Redistributions in binary form must reproduce the above
+*     copyright notice, this list of conditions and the following
+*     disclaimer in the documentation and/or other materials provided
+*     with the distribution.
+*   * Neither the name of the Willow Garage nor the names of its
+*     contributors may be used to endorse or promote products derived
+*     from this software without specific prior written permission.
+* 
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+*  POSSIBILITY OF SUCH DAMAGE.
+*********************************************************************/
 
-#ifndef __CL_VERSION_H
-#define __CL_VERSION_H
+#include "image_transport/image_transport.h"
+#include "image_transport/publisher_plugin.h"
+#include "image_transport/subscriber_plugin.h"
+#include <pluginlib/class_loader.h>
+#include <boost/make_shared.hpp>
+#include <boost/foreach.hpp>
+#include <boost/algorithm/string/erase.hpp>
 
-/* Detect which version to target */
-#if !defined(CL_TARGET_OPENCL_VERSION)
-#pragma message("cl_version.h: CL_TARGET_OPENCL_VERSION is not defined. Defaulting to 300 (OpenCL 3.0)")
-#define CL_TARGET_OPENCL_VERSION 300
-#endif
-#if CL_TARGET_OPENCL_VERSION != 100 && \
-    CL_TARGET_OPENCL_VERSION != 110 && \
-    CL_TARGET_OPENCL_VERSION != 120 && \
-    CL_TARGET_OPENCL_VERSION != 200 && \
-    CL_TARGET_OPENCL_VERSION != 210 && \
-    CL_TARGET_OPENCL_VERSION != 220 && \
-    CL_TARGET_OPENCL_VERSION != 300
-#pragma message("cl_version: CL_TARGET_OPENCL_VERSION is not a valid value (100, 110, 120, 200, 210, 220, 300). Defaulting to 300 (OpenCL 3.0)")
-#undef CL_TARGET_OPENCL_VERSION
-#define CL_TARGET_OPENCL_VERSION 300
-#endif
+namespace image_transport {
 
+struct ImageTransport::Impl
+{
+  ros::NodeHandle nh_;
+  PubLoaderPtr pub_loader_;
+  SubLoaderPtr sub_loader_;
+  
+  Impl(const ros::NodeHandle& nh)
+    : nh_(nh),
+      pub_loader_( boost::make_shared<PubLoader>("image_transport", "image_transport::PublisherPlugin") ),
+      sub_loader_( boost::make_shared<SubLoader>("image_transport", "image_transport::SubscriberPlugin") )
+  {
+  }
+};
 
-/* OpenCL Version */
-#if CL_TARGET_OPENCL_VERSION >= 300 && !defined(CL_VERSION_3_0)
-#define CL_VERSION_3_0  1
-#endif
-#if CL_TARGET_OPENCL_VERSION >= 220 && !defined(CL_VERSION_2_2)
-#define CL_VERSION_2_2  1
-#endif
-#if CL_TARGET_OPENCL_VERSION >= 210 && !defined(CL_VERSION_2_1)
-#define CL_VERSION_2_1  1
-#endif
-#if CL_TARGET_OPENCL_VERSION >= 200 && !defined(CL_VERSION_2_0)
-#define CL_VERSION_2_0  1
-#endif
-#if CL_TARGET_OPENCL_VERSION >= 120 && !defined(CL_VERSION_1_2)
-#define CL_VERSION_1_2  1
-#endif
-#if CL_TARGET_OPENCL_VERSION >= 110 && !defined(CL_VERSION_1_1)
-#define CL_VERSION_1_1  1
-#endif
-#if CL_TARGET_OPENCL_VERSION >= 100 && !defined(CL_VERSION_1_0)
-#define CL_VERSION_1_0  1
-#endif
+ImageTransport::ImageTransport(const ros::NodeHandle& nh)
+  : impl_(new Impl(nh))
+{
+}
 
-/* Allow deprecated APIs for older OpenCL versions. */
-#if CL_TARGET_OPENCL_VERSION <= 220 && !defined(CL_USE_DEPRECATED_OPENCL_2_2_APIS)
-#define CL_USE_DEPRECATED_OPENCL_2_2_APIS
-#endif
-#if CL_TARGET_OPENCL_VERSION <= 210 && !defined(CL_USE_DEPRECATED_OPENCL_2_1_APIS)
-#define CL_USE_DEPRECATED_OPENCL_2_1_APIS
-#endif
-#if CL_TARGET_OPENCL_VERSION <= 200 && !defined(CL_USE_DEPRECATED_OPENCL_2_0_APIS)
-#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
-#endif
-#if CL_TARGET_OPENCL_VERSION <= 120 && !defined(CL_USE_DEPRECATED_OPENCL_1_2_APIS)
-#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
-#endif
-#if CL_TARGET_OPENCL_VERSION <= 110 && !defined(CL_USE_DEPRECATED_OPENCL_1_1_APIS)
-#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
-#endif
-#if CL_TARGET_OPENCL_VERSION <= 100 && !defined(CL_USE_DEPRECATED_OPENCL_1_0_APIS)
-#define CL_USE_DEPRECATED_OPENCL_1_0_APIS
-#endif
+ImageTransport::~ImageTransport()
+{
+}
 
-#endif  /* __CL_VERSION_H */
+Publisher ImageTransport::advertise(const std::string& base_topic, uint32_t queue_size, bool latch)
+{
+  return advertise(base_topic, queue_size, SubscriberStatusCallback(),
+                   SubscriberStatusCallback(), ros::VoidPtr(), latch);
+}
+
+Publisher ImageTransport::advertise(const std::string& base_topic, uint32_t queue_size,
+                                    const SubscriberStatusCallback& connect_cb,
+                                    const SubscriberStatusCallback& disconnect_cb,
+                                    const ros::VoidPtr& tracked_object, bool latch)
+{
+  return Publisher(impl_->nh_, base_topic, queue_size, connect_cb, disconnect_cb, tracked_object, latch, impl_->pub_loader_);
+}
+
+Subscriber ImageTransport::subscribe(const std::string& base_topic, uint32_t queue_size,
+                                     const boost::function<void(const sensor_msgs::ImageConstPtr&)>& callback,
+                                     const ros::VoidPtr& tracked_object, const TransportHints& transport_hints)
+{
+  return Subscriber(impl_->nh_, base_topic, queue_size, callback, tracked_object, transport_hints, impl_->sub_loader_);
+}
+
+CameraPublisher ImageTransport::advertiseCamera(const std::string& base_topic, uint32_t queue_size, bool latch)
+{
+  return advertiseCamera(base_topic, queue_size,
+                         SubscriberStatusCallback(), SubscriberStatusCallback(),
+                         ros::SubscriberStatusCallback(), ros::SubscriberStatusCallback(),
+                         ros::VoidPtr(), latch);
+}
+
+CameraPublisher ImageTransport::advertiseCamera(const std::string& base_topic, uint32_t queue_size,
+                                                const SubscriberStatusCallback& image_connect_cb,
+                                                const SubscriberStatusCallback& image_disconnect_cb,
+                                                const ros::SubscriberStatusCallback& info_connect_cb,
+                                                const ros::SubscriberStatusCallback& info_disconnect_cb,
+                                                const ros::VoidPtr& tracked_object, bool latch)
+{
+  return CameraPublisher(*this, impl_->nh_, base_topic, queue_size, image_connect_cb, image_disconnect_cb,
+                         info_connect_cb, info_disconnect_cb, tracked_object, latch);
+}
+
+CameraSubscriber ImageTransport::subscribeCamera(const std::string& base_topic, uint32_t queue_size,
+                                                 const CameraSubscriber::Callback& callback,
+                                                 const ros::VoidPtr& tracked_object,
+                                                 const TransportHints& transport_hints)
+{
+  return CameraSubscriber(*this, impl_->nh_, base_topic, queue_size, callback, tracked_object, transport_hints);
+}
+
+std::vector<std::string> ImageTransport::getDeclaredTransports() const
+{
+  std::vector<std::string> transports = impl_->sub_loader_->getDeclaredClasses();
+  // Remove the "_sub" at the end of each class name.
+  BOOST_FOREACH(std::string& transport, transports) {
+    transport = boost::erase_last_copy(transport, "_sub");
+  }
+  return transports;
+}
+
+std::vector<std::string> ImageTransport::getLoadableTransports() const
+{
+  std::vector<std::string> loadableTransports;
+
+  BOOST_FOREACH( const std::string& transportPlugin, impl_->sub_loader_->getDeclaredClasses() )
+  {
+    // If the plugin loads without throwing an exception, add its
+    // transport name to the list of valid plugins, otherwise ignore
+    // it.
+    try
+    {
+      boost::shared_ptr<image_transport::SubscriberPlugin> sub = impl_->sub_loader_->createInstance(transportPlugin);
+      loadableTransports.push_back(boost::erase_last_copy(transportPlugin, "_sub")); // Remove the "_sub" at the end of each class name.
+    }
+    catch (const pluginlib::LibraryLoadException& e) {}
+    catch (const pluginlib::CreateClassException& e) {}
+  }
+
+  return loadableTransports;
+
+}
+
+} //namespace image_transport

@@ -1,146 +1,74 @@
-#ifndef GENCOLORS_CPP_
-#define GENCOLORS_CPP_
+/*********************************************************************
+* Software License Agreement (BSD License)
+* 
+*  Copyright (c) 2009, Willow Garage, Inc.
+*  All rights reserved.
+* 
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions
+*  are met:
+* 
+*   * Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   * Redistributions in binary form must reproduce the above
+*     copyright notice, this list of conditions and the following
+*     disclaimer in the documentation and/or other materials provided
+*     with the distribution.
+*   * Neither the name of the Willow Garage nor the names of its
+*     contributors may be used to endorse or promote products derived
+*     from this software without specific prior written permission.
+* 
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+*  POSSIBILITY OF SUCH DAMAGE.
+*********************************************************************/
 
-/*M///////////////////////////////////////////////////////////////////////////////////////
-//
-//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
-//
-//  By downloading, copying, installing or using the software you agree to this license.
-//  If you do not agree to this license, do not download, install,
-//  copy or use the software.
-//
-//
-//                           License Agreement
-//                For Open Source Computer Vision Library
-//
-// Copyright (C) 2000-2008, Intel Corporation, all rights reserved.
-// Copyright (C) 2009, Willow Garage Inc., all rights reserved.
-// Third party copyrights are property of their respective owners.
-//
-// Redistribution and use in source and binary forms, with or without modification,
-// are permitted provided that the following conditions are met:
-//
-//   * Redistribution's of source code must retain the above copyright notice,
-//     this list of conditions and the following disclaimer.
-//
-//   * Redistribution's in binary form must reproduce the above copyright notice,
-//     this list of conditions and the following disclaimer in the documentation
-//     and/or other materials provided with the distribution.
-//
-//   * The name of the copyright holders may not be used to endorse or promote products
-//     derived from this software without specific prior written permission.
-//
-// This software is provided by the copyright holders and contributors "as is" and
-// any express or implied warranties, including, but not limited to, the implied
-// warranties of merchantability and fitness for a particular purpose are disclaimed.
-// In no event shall the Intel Corporation or contributors be liable for any direct,
-// indirect, incidental, special, exemplary, or consequential damages
-// (including, but not limited to, procurement of substitute goods or services;
-// loss of use, data, or profits; or business interruption) however caused
-// and on any theory of liability, whether in contract, strict liability,
-// or tort (including negligence or otherwise) arising in any way out of
-// the use of this software, even if advised of the possibility of such damage.
-//
-//M*/
-#include "opencv2/core/core.hpp"
-//#include "precomp.hpp"
-#include <opencv2/opencv.hpp>
+#include "image_transport/single_subscriber_publisher.h"
+#include "image_transport/publisher.h"
 
-#include <iostream>
+namespace image_transport {
 
-using namespace cv;
-
-static void downsamplePoints( const Mat& src, Mat& dst, size_t count )
+SingleSubscriberPublisher::SingleSubscriberPublisher(const std::string& caller_id, const std::string& topic,
+                                                     const GetNumSubscribersFn& num_subscribers_fn,
+                                                     const PublishFn& publish_fn)
+  : caller_id_(caller_id), topic_(topic),
+    num_subscribers_fn_(num_subscribers_fn),
+    publish_fn_(publish_fn)
 {
-    CV_Assert( count >= 2 );
-    CV_Assert( src.cols == 1 || src.rows == 1 );
-    CV_Assert( src.total() >= count );
-    CV_Assert( src.type() == CV_8UC3);
-
-    dst.create( 1, (int)count, CV_8UC3 );
-    //TODO: optimize by exploiting symmetry in the distance matrix
-    Mat dists( (int)src.total(), (int)src.total(), CV_32FC1, Scalar(0) );
-    if( dists.empty() )
-        std::cerr << "Such big matrix cann't be created." << std::endl;
-
-    for( int i = 0; i < dists.rows; i++ )
-    {
-        for( int j = i; j < dists.cols; j++ )
-        {
-            float dist = (float)norm(src.at<Point3_<uchar> >(i) - src.at<Point3_<uchar> >(j));
-            dists.at<float>(j, i) = dists.at<float>(i, j) = dist;
-        }
-    }
-
-    double maxVal;
-    Point maxLoc;
-    minMaxLoc(dists, 0, &maxVal, 0, &maxLoc);
-
-    dst.at<Point3_<uchar> >(0) = src.at<Point3_<uchar> >(maxLoc.x);
-    dst.at<Point3_<uchar> >(1) = src.at<Point3_<uchar> >(maxLoc.y);
-
-    Mat activedDists( 0, dists.cols, dists.type() );
-    Mat candidatePointsMask( 1, dists.cols, CV_8UC1, Scalar(255) );
-    activedDists.push_back( dists.row(maxLoc.y) );
-    candidatePointsMask.at<uchar>(0, maxLoc.y) = 0;
-
-    for( size_t i = 2; i < count; i++ )
-    {
-        activedDists.push_back(dists.row(maxLoc.x));
-        candidatePointsMask.at<uchar>(0, maxLoc.x) = 0;
-
-        Mat minDists;
-        reduce( activedDists, minDists, 0, CV_REDUCE_MIN );
-        minMaxLoc( minDists, 0, &maxVal, 0, &maxLoc, candidatePointsMask );
-        dst.at<Point3_<uchar> >((int)i) = src.at<Point3_<uchar> >(maxLoc.x);
-    }
 }
 
-void generateColors( std::vector<Scalar>& colors, size_t count, size_t factor=100 )
+std::string SingleSubscriberPublisher::getSubscriberName() const
 {
-    if( count < 1 )
-        return;
-
-    colors.resize(count);
-
-    if( count == 1 )
-    {
-        colors[0] = Scalar(0,0,255); // red
-        return;
-    }
-    if( count == 2 )
-    {
-        colors[0] = Scalar(0,0,255); // red
-        colors[1] = Scalar(0,255,0); // green
-        return;
-    }
-
-    // Generate a set of colors in RGB space. A size of the set is severel times (=factor) larger then
-    // the needed count of colors.
-    Mat bgr( 1, (int)(count*factor), CV_8UC3 );
-    randu( bgr, 0, 256 );
-
-    // Convert the colors set to Lab space.
-    // Distances between colors in this space correspond a human perception.
-    Mat lab;
-    cvtColor( bgr, lab, cv::COLOR_BGR2Lab);
-
-    // Subsample colors from the generated set so that
-    // to maximize the minimum distances between each other.
-    // Douglas-Peucker algorithm is used for this.
-    Mat lab_subset;
-    downsamplePoints( lab, lab_subset, count );
-
-    // Convert subsampled colors back to RGB
-    Mat bgr_subset;
-    cvtColor( lab_subset, bgr_subset, cv::COLOR_BGR2Lab );
-
-    CV_Assert( bgr_subset.total() == count );
-    for( size_t i = 0; i < count; i++ )
-    {
-        Point3_<uchar> c = bgr_subset.at<Point3_<uchar> >((int)i);
-        colors[i] = Scalar(c.x, c.y, c.z);
-    }
+  return caller_id_;
 }
 
-#endif //GENCOLORS_CPP
+std::string SingleSubscriberPublisher::getTopic() const
+{
+  return topic_;
+}
+
+uint32_t SingleSubscriberPublisher::getNumSubscribers() const
+{
+  return num_subscribers_fn_();
+}
+
+void SingleSubscriberPublisher::publish(const sensor_msgs::Image& message) const
+{
+  publish_fn_(message);
+}
+
+void SingleSubscriberPublisher::publish(const sensor_msgs::ImageConstPtr& message) const
+{
+  publish_fn_(*message);
+}
+
+} //namespace image_transport

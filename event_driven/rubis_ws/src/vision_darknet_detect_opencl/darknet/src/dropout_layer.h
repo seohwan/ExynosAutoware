@@ -1,20 +1,29 @@
-#ifndef DROPOUT_LAYER_H
-#define DROPOUT_LAYER_H
+/*
+ * Copyright 2015-2019 Autoware Foundation. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-#include "layer.h"
-#include "network.h"
+// ROS includes
+#include <ros/ros.h>
 
-typedef layer dropout_layer;
+#include "gnss_localizer.h"
 
-dropout_layer make_dropout_layer(int batch, int inputs, float probability);
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "gnss_localizer");  
+  gnss_localizer::Nmea2TFPoseNode ntpn;  
+  ntpn.run();
 
-void forward_dropout_layer(dropout_layer l, network net);
-void backward_dropout_layer(dropout_layer l, network net);
-void resize_dropout_layer(dropout_layer *l, int inputs);
-
-#ifdef GPU
-void forward_dropout_layer_gpu(dropout_layer l, network net);
-void backward_dropout_layer_gpu(dropout_layer l, network net);
-
-#endif
-#endif
+  return 0;
+}

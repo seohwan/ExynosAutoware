@@ -1,73 +1,91 @@
-#include "logistic_layer.h"
-#include "activations.h"
-#include "blas.h"
-#include "opencl.h"
+#include "cubetown_autorunner/cubetown_autorunner.h"
 
-#include <float.h>
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
+void CubetownAutorunner::Run(){
+    register_subscribers();             // Register subscribers that shoud check can go next or not
+    ros_autorunner_.init(nh_, sub_v_);   // Initialize the ROS-Autorunner
+    ros::Rate rate(1);                  // Rate can be changed
+    while(ros::ok()){               
+        if(!ros_autorunner_.Run()) break;           // Run Autorunner
+        ros::spinOnce();
+        rate.sleep();
+    }    
+}
 
-layer make_logistic_layer(int batch, int inputs)
-{
-    fprintf(stderr, "logistic x entropy                             %4d\n",  inputs);
-    layer l = {0};
-    l.type = LOGXENT;
-    l.batch = batch;
-    l.inputs = inputs;
-    l.outputs = inputs;
-    l.loss = (float*)calloc(inputs*batch, sizeof(float));
-    l.output = (float*)calloc(inputs*batch, sizeof(float));
-    l.delta = (float*)calloc(inputs*batch, sizeof(float));
-    l.cost = (float*)calloc(1, sizeof(float));
+void CubetownAutorunner::register_subscribers(){
+    int total_step_num = nh_.param("/total_step_num", -1);
+    if(total_step_num < 0){
+        std::cout<<"Parameter total_step_num is invalid"<<std::endl;
+        exit(1);
+    }    
+    sub_v_.resize(total_step_num);          // Resizing the subscriber vectors. Its size must be same with number of steps
 
-    l.forward = forward_logistic_layer;
-    l.backward = backward_logistic_layer;
-#ifdef GPU
-    if (gpu_index >= 0) {
-        l.forward_gpu = forward_logistic_layer_gpu;
-        l.backward_gpu = backward_logistic_layer_gpu;
-        l.update_gpu = 0;
-        l.output_gpu = opencl_make_array(l.output, inputs * batch);
-        l.loss_gpu = opencl_make_array(l.loss, inputs * batch);
-        l.delta_gpu = opencl_make_array(l.delta, inputs * batch);
+    // Set the check function(subscriber)
+    sub_v_[STEP(1)] = nh_.subscribe("/points_raw", 1, &CubetownAutorunner::points_raw_cb, this);   
+    sub_v_[STEP(2)] = nh_.subscribe("/ndt_pose", 1, &CubetownAutorunner::ndt_pose_cb, this);   
+    sub_v_[STEP(3)] = nh_.subscribe("/detection/lidar_detector/objects_center", 1, &CubetownAutorunner::detection_cb, this);   
+    sub_v_[STEP(4)] = nh_.subscribe("/behavior_state", 1, &CubetownAutorunner::behavior_state_cb, this);
+
+    initial_pose_pub_ = nh_.advertise< geometry_msgs::PoseWithCovarianceStamped>("initialpose", 1);
+}
+
+ void CubetownAutorunner::points_raw_cb(const sensor_msgs::PointCloud2& msg){
+    if(!msg.fields.empty() && !ros_autorunner_.step_info_list_[STEP(2)].is_prepared){
+        ROS_WARN("[STEP 1] Map and Sensors are prepared");
+    	sleep(SLEEP_PERIOD);
+        ros_autorunner_.step_info_list_[STEP(2)].is_prepared = true;
     }
-#endif
-    return l;
-}
+ }
 
-void forward_logistic_layer(const layer l, network net)
-{
-    copy_cpu(l.outputs*l.batch, net.input, 1, l.output, 1);
-    activate_array(l.output, l.outputs*l.batch, LOGISTIC);
-    if(net.truth){
-        logistic_x_ent_cpu(l.batch*l.inputs, l.output, net.truth, l.delta, l.loss);
-        l.cost[0] = sum_array(l.loss, l.batch*l.inputs);
+ void CubetownAutorunner::ndt_pose_cb(const geometry_msgs::PoseStamped& msg){
+    static int failure_cnt = 0, success_cnt = 0;
+    failure_cnt++;    
+
+    if(failure_cnt > 10){        
+        std::cout<<"# Refresh inital pose"<<std::endl;
+        geometry_msgs::PoseWithCovarianceStamped initial_pose_msg;
+        initial_pose_msg.header = msg.header;
+        initial_pose_msg.pose.pose.position.x = 56.3796081543;
+        initial_pose_msg.pose.pose.position.y = -0.0106279850006;
+        initial_pose_msg.pose.pose.position.z = 0.465716004372;
+        initial_pose_msg.pose.pose.orientation.x = -0.00171861096474;
+        initial_pose_msg.pose.pose.orientation.y = -0.00120572400155;
+        initial_pose_msg.pose.pose.orientation.z = 0.707457658123;
+        initial_pose_msg.pose.pose.orientation.w = 0.706752612;
+        initial_pose_pub_.publish(initial_pose_msg);
+        failure_cnt = 0;
+    }
+
+    if(msg.pose.position.x <= 57.0 && msg.pose.position.x >= 55.0 &&        
+        msg.pose.position.y >= -0.20 && msg.pose.position.y <= 0.00 &&
+        !ros_autorunner_.step_info_list_[STEP(3)].is_prepared){
+        success_cnt++;
+        if(success_cnt < 3) return;
+        ROS_WARN("[STEP 2] Localization is success");
+    	sleep(SLEEP_PERIOD);
+        ros_autorunner_.step_info_list_[STEP(3)].is_prepared = true;
+    }
+    else{
+        success_cnt = 0;
+    }
+    
+ }
+
+void CubetownAutorunner::detection_cb(const autoware_msgs::DetectedObjectArray& msg){
+    if(!msg.objects.empty() && !ros_autorunner_.step_info_list_[STEP(4)].is_prepared){
+        ROS_WARN("[STEP 3] All detection modules are excuted");
+    	sleep(SLEEP_PERIOD);
+        ros_autorunner_.step_info_list_[STEP(4)].is_prepared = true;
     }
 }
 
-void backward_logistic_layer(const layer l, network net)
-{
-    axpy_cpu(l.inputs*l.batch, 1, l.delta, 1, net.delta, 1);
-}
 
-#ifdef GPU
-
-void forward_logistic_layer_gpu(const layer l, network net)
-{
-    copy_gpu(l.outputs*l.batch, net.input_gpu, 1, l.output_gpu, 1);
-    activate_array_gpu(l.output_gpu, l.outputs*l.batch, LOGISTIC);
-    if(net.truth){
-        logistic_x_ent_gpu(l.batch*l.inputs, l.output_gpu, net.truth_gpu, l.delta_gpu, l.loss_gpu);
-        opencl_pull_array(l.loss_gpu, l.loss, l.batch*l.inputs);
-        l.cost[0] = sum_array(l.loss, l.batch*l.inputs);
+ void CubetownAutorunner::behavior_state_cb(const visualization_msgs::MarkerArray& msg){
+    std::string state = msg.markers.front().text;    
+    if(!msg.markers.empty() && state.find(std::string("Forward"))!=std::string::npos){
+        ROS_WARN("[STEP 4] Global & local planning success");
+        ros_autorunner_.step_info_list_[STEP(5)].is_prepared = true;
     }
 }
 
-void backward_logistic_layer_gpu(const layer l, network net)
-{
-    axpy_gpu(l.batch*l.inputs, 1, l.delta_gpu, 1, net.delta_gpu, 1);
-}
 
-#endif
+

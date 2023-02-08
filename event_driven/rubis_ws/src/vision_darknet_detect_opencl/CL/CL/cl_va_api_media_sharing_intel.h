@@ -1,172 +1,141 @@
-/**********************************************************************************
- * Copyright (c) 2008-2016 The Khronos Group Inc.
+/*********************************************************************
+* Software License Agreement (BSD License)
+* 
+*  Copyright (c) 2009, Willow Garage, Inc.
+*  All rights reserved.
+* 
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions
+*  are met:
+* 
+*   * Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   * Redistributions in binary form must reproduce the above
+*     copyright notice, this list of conditions and the following
+*     disclaimer in the documentation and/or other materials provided
+*     with the distribution.
+*   * Neither the name of the Willow Garage nor the names of its
+*     contributors may be used to endorse or promote products derived
+*     from this software without specific prior written permission.
+* 
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+*  POSSIBILITY OF SUCH DAMAGE.
+*********************************************************************/
+
+#ifndef IMAGE_TRANSPORT_SIMPLE_SUBSCRIBER_PLUGIN_H
+#define IMAGE_TRANSPORT_SIMPLE_SUBSCRIBER_PLUGIN_H
+
+#include "image_transport/subscriber_plugin.h"
+#include <boost/scoped_ptr.hpp>
+
+namespace image_transport {
+
+/**
+ * \brief Base class to simplify implementing most plugins to Subscriber.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and/or associated documentation files (the
- * "Materials"), to deal in the Materials without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Materials, and to
- * permit persons to whom the Materials are furnished to do so, subject to
- * the following conditions:
+ * The base class simplifies implementing a SubscriberPlugin in the common case that
+ * all communication with the matching PublisherPlugin happens over a single ROS
+ * topic using a transport-specific message type. SimpleSubscriberPlugin is templated
+ * on the transport-specific message type.
  *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Materials.
+ * A subclass need implement only two methods:
+ * - getTransportName() from SubscriberPlugin
+ * - internalCallback() - processes a message and invoked the user Image callback if
+ * appropriate.
  *
- * MODIFICATIONS TO THIS FILE MAY MEAN IT NO LONGER ACCURATELY REFLECTS
- * KHRONOS STANDARDS. THE UNMODIFIED, NORMATIVE VERSIONS OF KHRONOS
- * SPECIFICATIONS AND HEADER INFORMATION ARE LOCATED AT
- *    https://www.khronos.org/registry/
+ * For access to the parameter server and name remappings, use nh().
  *
- * THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
- **********************************************************************************/
-/*****************************************************************************\
+ * getTopicToSubscribe() controls the name of the internal communication topic. It
+ * defaults to \<base topic\>/\<transport name\>.
+ */
+template <class M>
+class SimpleSubscriberPlugin : public SubscriberPlugin
+{
+public:
+  virtual ~SimpleSubscriberPlugin() {}
 
-Copyright (c) 2013-2016 Intel Corporation All Rights Reserved.
+  virtual std::string getTopic() const
+  {
+    if (simple_impl_) return simple_impl_->sub_.getTopic();
+    return std::string();
+  }
 
-THESE MATERIALS ARE PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR ITS
-CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
-OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THESE
-MATERIALS, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  virtual uint32_t getNumPublishers() const
+  {
+    if (simple_impl_) return simple_impl_->sub_.getNumPublishers();
+    return 0;
+  }
 
-File Name: cl_va_api_media_sharing_intel.h
+  virtual void shutdown()
+  {
+    if (simple_impl_) simple_impl_->sub_.shutdown();
+  }
 
-Abstract:
+protected:
+  /**
+   * \brief Process a message. Must be implemented by the subclass.
+   *
+   * @param message A message from the PublisherPlugin.
+   * @param user_cb The user Image callback to invoke, if appropriate.
+   */
+  virtual void internalCallback(const typename M::ConstPtr& message, const Callback& user_cb) = 0;
 
-Notes:
+  /**
+   * \brief Return the communication topic name for a given base topic.
+   *
+   * Defaults to \<base topic\>/\<transport name\>.
+   */
+  virtual std::string getTopicToSubscribe(const std::string& base_topic) const
+  {
+    return base_topic + "/" + getTransportName();
+  }
+  
+  virtual void subscribeImpl(ros::NodeHandle& nh, const std::string& base_topic, uint32_t queue_size,
+                             const Callback& callback, const ros::VoidPtr& tracked_object,
+                             const TransportHints& transport_hints)
+  {
+    // Push each group of transport-specific parameters into a separate sub-namespace
+    ros::NodeHandle param_nh(transport_hints.getParameterNH(), getTransportName());
+    simple_impl_.reset(new SimpleSubscriberPluginImpl(param_nh));
 
-\*****************************************************************************/
+    simple_impl_->sub_ = nh.subscribe<M>(getTopicToSubscribe(base_topic), queue_size,
+                                         boost::bind(&SimpleSubscriberPlugin::internalCallback, this, _1, callback),
+                                         tracked_object, transport_hints.getRosHints());
+  }
 
+  /**
+   * \brief Returns the ros::NodeHandle to be used for parameter lookup.
+   */
+  const ros::NodeHandle& nh() const
+  {
+    return simple_impl_->param_nh_;
+  }
 
-#ifndef __OPENCL_CL_VA_API_MEDIA_SHARING_INTEL_H
-#define __OPENCL_CL_VA_API_MEDIA_SHARING_INTEL_H
+private:
+  struct SimpleSubscriberPluginImpl
+  {
+    SimpleSubscriberPluginImpl(const ros::NodeHandle& nh)
+      : param_nh_(nh)
+    {
+    }
+    
+    const ros::NodeHandle param_nh_;
+    ros::Subscriber sub_;
+  };
+  
+  boost::scoped_ptr<SimpleSubscriberPluginImpl> simple_impl_;
+};
 
-#include <CL/cl.h>
-#include <CL/cl_platform.h>
-#include <va/va.h>
+} //namespace image_transport
 
-#ifdef __cplusplus
-extern "C" {
 #endif
-
-/******************************************
-* cl_intel_va_api_media_sharing extension *
-*******************************************/
-
-#define cl_intel_va_api_media_sharing 1
-
-/* error codes */
-#define CL_INVALID_VA_API_MEDIA_ADAPTER_INTEL               -1098
-#define CL_INVALID_VA_API_MEDIA_SURFACE_INTEL               -1099
-#define CL_VA_API_MEDIA_SURFACE_ALREADY_ACQUIRED_INTEL      -1100
-#define CL_VA_API_MEDIA_SURFACE_NOT_ACQUIRED_INTEL          -1101
-
-/* cl_va_api_device_source_intel */
-#define CL_VA_API_DISPLAY_INTEL                             0x4094
-
-/* cl_va_api_device_set_intel */
-#define CL_PREFERRED_DEVICES_FOR_VA_API_INTEL               0x4095
-#define CL_ALL_DEVICES_FOR_VA_API_INTEL                     0x4096
-
-/* cl_context_info */
-#define CL_CONTEXT_VA_API_DISPLAY_INTEL                     0x4097
-
-/* cl_mem_info */
-#define CL_MEM_VA_API_MEDIA_SURFACE_INTEL                   0x4098
-
-/* cl_image_info */
-#define CL_IMAGE_VA_API_PLANE_INTEL                         0x4099
-
-/* cl_command_type */
-#define CL_COMMAND_ACQUIRE_VA_API_MEDIA_SURFACES_INTEL      0x409A
-#define CL_COMMAND_RELEASE_VA_API_MEDIA_SURFACES_INTEL      0x409B
-
-typedef cl_uint cl_va_api_device_source_intel;
-typedef cl_uint cl_va_api_device_set_intel;
-
-extern CL_API_ENTRY cl_int CL_API_CALL
-clGetDeviceIDsFromVA_APIMediaAdapterINTEL(
-    cl_platform_id                /* platform */,
-    cl_va_api_device_source_intel /* media_adapter_type */,
-    void*                         /* media_adapter */,
-    cl_va_api_device_set_intel    /* media_adapter_set */,
-    cl_uint                       /* num_entries */,
-    cl_device_id*                 /* devices */,
-    cl_uint*                      /* num_devices */) CL_EXT_SUFFIX__VERSION_1_2;
-
-typedef CL_API_ENTRY cl_int (CL_API_CALL * clGetDeviceIDsFromVA_APIMediaAdapterINTEL_fn)(
-    cl_platform_id                /* platform */,
-    cl_va_api_device_source_intel /* media_adapter_type */,
-    void*                         /* media_adapter */,
-    cl_va_api_device_set_intel    /* media_adapter_set */,
-    cl_uint                       /* num_entries */,
-    cl_device_id*                 /* devices */,
-    cl_uint*                      /* num_devices */) CL_EXT_SUFFIX__VERSION_1_2;
-
-extern CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromVA_APIMediaSurfaceINTEL(
-    cl_context                    /* context */,
-    cl_mem_flags                  /* flags */,
-    VASurfaceID*                  /* surface */,
-    cl_uint                       /* plane */,
-    cl_int*                       /* errcode_ret */) CL_EXT_SUFFIX__VERSION_1_2;
-
-typedef CL_API_ENTRY cl_mem (CL_API_CALL * clCreateFromVA_APIMediaSurfaceINTEL_fn)(
-    cl_context                    /* context */,
-    cl_mem_flags                  /* flags */,
-    VASurfaceID*                  /* surface */,
-    cl_uint                       /* plane */,
-    cl_int*                       /* errcode_ret */) CL_EXT_SUFFIX__VERSION_1_2;
-
-extern CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueAcquireVA_APIMediaSurfacesINTEL(
-    cl_command_queue              /* command_queue */,
-    cl_uint                       /* num_objects */,
-    const cl_mem*                 /* mem_objects */,
-    cl_uint                       /* num_events_in_wait_list */,
-    const cl_event*               /* event_wait_list */,
-    cl_event*                     /* event */) CL_EXT_SUFFIX__VERSION_1_2;
-
-typedef CL_API_ENTRY cl_int (CL_API_CALL *clEnqueueAcquireVA_APIMediaSurfacesINTEL_fn)(
-    cl_command_queue              /* command_queue */,
-    cl_uint                       /* num_objects */,
-    const cl_mem*                 /* mem_objects */,
-    cl_uint                       /* num_events_in_wait_list */,
-    const cl_event*               /* event_wait_list */,
-    cl_event*                     /* event */) CL_EXT_SUFFIX__VERSION_1_2;
-
-extern CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueReleaseVA_APIMediaSurfacesINTEL(
-    cl_command_queue              /* command_queue */,
-    cl_uint                       /* num_objects */,
-    const cl_mem*                 /* mem_objects */,
-    cl_uint                       /* num_events_in_wait_list */,
-    const cl_event*               /* event_wait_list */,
-    cl_event*                     /* event */) CL_EXT_SUFFIX__VERSION_1_2;
-	
-typedef CL_API_ENTRY cl_int (CL_API_CALL *clEnqueueReleaseVA_APIMediaSurfacesINTEL_fn)(
-    cl_command_queue              /* command_queue */,
-    cl_uint                       /* num_objects */,
-    const cl_mem*                 /* mem_objects */,
-    cl_uint                       /* num_events_in_wait_list */,
-    const cl_event*               /* event_wait_list */,
-    cl_event*                     /* event */) CL_EXT_SUFFIX__VERSION_1_2;
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif  /* __OPENCL_CL_VA_API_MEDIA_SHARING_INTEL_H */
-

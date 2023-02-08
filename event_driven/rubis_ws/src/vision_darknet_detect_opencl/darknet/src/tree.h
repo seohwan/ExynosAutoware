@@ -1,15 +1,12 @@
-#ifndef TREE_H
-#define TREE_H
-#include "darknet.h"
+#define PKG_NAME        0
+#define TARGET_NAME     1
+#define CREATE_TOPIC    2
+#define CHECK_TOPIC     3
+#define TARGET_TYPE     4
+#define RUN             0
+#define LAUNCH          1
 
-int hierarchy_top_prediction(float *predictions, tree *hier, float thresh, int stride);
-void hierarchy_predictions(float *predictions, int n, tree *hier, int only_leaves, int stride);
-void change_leaves(tree *t, char *leaf_list);
-float get_hierarchy_probability(float *x, tree *hier, int c, int stride);
+#define CHILD           0
 
-int hierarchy_top_prediction_y4(float *predictions, tree *hier, float thresh, int stride);
-void hierarchy_predictions_y4(float *predictions, int n, tree *hier, int only_leaves);
-void change_leaves_y4(tree *t, char *leaf_list);
-float get_hierarchy_probability_y4(float *x, tree *hier, int c);
-
-#endif
+#define INT_TO_STEP(a)  a+1
+#define STEP(a)  a-1

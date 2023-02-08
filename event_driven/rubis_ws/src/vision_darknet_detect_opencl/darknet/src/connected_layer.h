@@ -1,23 +1,37 @@
-#ifndef CONNECTED_LAYER_H
-#define CONNECTED_LAYER_H
+#include <ros/ros.h>
+#include <geometry_msgs/TwistStamped.h>
 
-#include "activations.h"
-#include "layer.h"
-#include "network.h"
+geometry_msgs::TwistStamped msg;
+float target_velocity;
 
-layer make_connected_layer(int batch, int inputs, int outputs, ACTIVATION activation, int batch_normalize, int adam);
+// void cb(const geometry_msgs::TwistStamped in_msg){
+//   msg = in_msg;
+//   msg.twist.linear.x = target_velocity;
+// }
 
-void forward_connected_layer(layer l, network net);
-void backward_connected_layer(layer l, network net);
-void update_connected_layer(layer l, update_args a);
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "twist_cmd_publisher");
+  ros::NodeHandle nh;
+  ros::Rate rate(10);
+  nh.param<float>("/twist_cmd_publisher/target_velocity", target_velocity, 2.0);
 
-#ifdef GPU
-void forward_connected_layer_gpu(layer l, network net);
-void backward_connected_layer_gpu(layer l, network net);
-void update_connected_layer_gpu(layer l, update_args a);
-void push_connected_layer(layer l);
-void pull_connected_layer(layer l);
-#endif
+  ros::Publisher pub;
+  // ros::Subscriber sub;
+  pub = nh.advertise<geometry_msgs::TwistStamped>("/twist_cmd", 10);
+  // sub = nh.subscribe("/twist_raw", 1, cb);
+  msg.twist.linear.x = target_velocity;
 
-#endif
 
+  while(ros::ok()){
+    // ros::spinOnce();
+    
+    pub.publish(msg);
+
+    rate.sleep();
+    
+  }
+  
+
+  return 0;
+}

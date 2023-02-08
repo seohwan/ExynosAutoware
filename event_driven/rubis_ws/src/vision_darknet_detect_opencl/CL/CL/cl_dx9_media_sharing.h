@@ -1,132 +1,81 @@
-/**********************************************************************************
- * Copyright (c) 2008-2015 The Khronos Group Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and/or associated documentation files (the
- * "Materials"), to deal in the Materials without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Materials, and to
- * permit persons to whom the Materials are furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Materials.
- *
- * MODIFICATIONS TO THIS FILE MAY MEAN IT NO LONGER ACCURATELY REFLECTS
- * KHRONOS STANDARDS. THE UNMODIFIED, NORMATIVE VERSIONS OF KHRONOS
- * SPECIFICATIONS AND HEADER INFORMATION ARE LOCATED AT
- *    https://www.khronos.org/registry/
- *
- * THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
- **********************************************************************************/
+/*********************************************************************
+* Software License Agreement (BSD License)
+* 
+*  Copyright (c) 2009, Willow Garage, Inc.
+*  All rights reserved.
+* 
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions
+*  are met:
+* 
+*   * Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   * Redistributions in binary form must reproduce the above
+*     copyright notice, this list of conditions and the following
+*     disclaimer in the documentation and/or other materials provided
+*     with the distribution.
+*   * Neither the name of the Willow Garage nor the names of its
+*     contributors may be used to endorse or promote products derived
+*     from this software without specific prior written permission.
+* 
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+*  POSSIBILITY OF SUCH DAMAGE.
+*********************************************************************/
 
-/* $Revision: 11708 $ on $Date: 2010-06-13 23:36:24 -0700 (Sun, 13 Jun 2010) $ */
+#ifndef IMAGE_TRANSPORT_SINGLE_SUBSCRIBER_PUBLISHER
+#define IMAGE_TRANSPORT_SINGLE_SUBSCRIBER_PUBLISHER
 
-#ifndef __OPENCL_CL_DX9_MEDIA_SHARING_H
-#define __OPENCL_CL_DX9_MEDIA_SHARING_H
+#include <boost/noncopyable.hpp>
+#include <boost/function.hpp>
+#include <sensor_msgs/Image.h>
+#include "exports.h"
 
-#include <CL/cl.h>
-#include <CL/cl_platform.h>
+namespace image_transport {
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/******************************************************************************/
-/* cl_khr_dx9_media_sharing                                                   */
-#define cl_khr_dx9_media_sharing 1
-
-typedef cl_uint             cl_dx9_media_adapter_type_khr;
-typedef cl_uint             cl_dx9_media_adapter_set_khr;
-    
-#if defined(_WIN32)
-#include <d3d9.h>
-typedef struct _cl_dx9_surface_info_khr
+/**
+ * \brief Allows publication of an image to a single subscriber. Only available inside
+ * subscriber connection callbacks.
+ */
+class IMAGE_TRANSPORT_DECL SingleSubscriberPublisher : boost::noncopyable
 {
-    IDirect3DSurface9 *resource;
-    HANDLE shared_handle;
-} cl_dx9_surface_info_khr;
+public:
+  typedef boost::function<uint32_t()> GetNumSubscribersFn;
+  typedef boost::function<void(const sensor_msgs::Image&)> PublishFn;
+  
+  SingleSubscriberPublisher(const std::string& caller_id, const std::string& topic,
+                            const GetNumSubscribersFn& num_subscribers_fn,
+                            const PublishFn& publish_fn);
+  
+  std::string getSubscriberName() const;
+
+  std::string getTopic() const;
+
+  uint32_t getNumSubscribers() const;
+
+  void publish(const sensor_msgs::Image& message) const;
+  void publish(const sensor_msgs::ImageConstPtr& message) const;
+
+private:
+  std::string caller_id_;
+  std::string topic_;
+  GetNumSubscribersFn num_subscribers_fn_;
+  PublishFn publish_fn_;
+
+  friend class Publisher; // to get publish_fn_ directly
+};
+
+typedef boost::function<void(const SingleSubscriberPublisher&)> SubscriberStatusCallback;
+
+} //namespace image_transport
+
 #endif
-
-
-/******************************************************************************/
-
-/* Error Codes */
-#define CL_INVALID_DX9_MEDIA_ADAPTER_KHR                -1010
-#define CL_INVALID_DX9_MEDIA_SURFACE_KHR                -1011
-#define CL_DX9_MEDIA_SURFACE_ALREADY_ACQUIRED_KHR       -1012
-#define CL_DX9_MEDIA_SURFACE_NOT_ACQUIRED_KHR           -1013
-
-/* cl_media_adapter_type_khr */
-#define CL_ADAPTER_D3D9_KHR                              0x2020
-#define CL_ADAPTER_D3D9EX_KHR                            0x2021
-#define CL_ADAPTER_DXVA_KHR                              0x2022
-
-/* cl_media_adapter_set_khr */
-#define CL_PREFERRED_DEVICES_FOR_DX9_MEDIA_ADAPTER_KHR   0x2023
-#define CL_ALL_DEVICES_FOR_DX9_MEDIA_ADAPTER_KHR         0x2024
-
-/* cl_context_info */
-#define CL_CONTEXT_ADAPTER_D3D9_KHR                      0x2025
-#define CL_CONTEXT_ADAPTER_D3D9EX_KHR                    0x2026
-#define CL_CONTEXT_ADAPTER_DXVA_KHR                      0x2027
-
-/* cl_mem_info */
-#define CL_MEM_DX9_MEDIA_ADAPTER_TYPE_KHR                0x2028
-#define CL_MEM_DX9_MEDIA_SURFACE_INFO_KHR                0x2029
-
-/* cl_image_info */
-#define CL_IMAGE_DX9_MEDIA_PLANE_KHR                     0x202A
-
-/* cl_command_type */
-#define CL_COMMAND_ACQUIRE_DX9_MEDIA_SURFACES_KHR        0x202B
-#define CL_COMMAND_RELEASE_DX9_MEDIA_SURFACES_KHR        0x202C
-
-/******************************************************************************/
-
-typedef CL_API_ENTRY cl_int (CL_API_CALL *clGetDeviceIDsFromDX9MediaAdapterKHR_fn)(
-    cl_platform_id                   platform,
-    cl_uint                          num_media_adapters,
-    cl_dx9_media_adapter_type_khr *  media_adapter_type,
-    void *                           media_adapters,
-    cl_dx9_media_adapter_set_khr     media_adapter_set,
-    cl_uint                          num_entries,
-    cl_device_id *                   devices,
-    cl_uint *                        num_devices) CL_API_SUFFIX__VERSION_1_2;
-
-typedef CL_API_ENTRY cl_mem (CL_API_CALL *clCreateFromDX9MediaSurfaceKHR_fn)(
-    cl_context                    context,
-    cl_mem_flags                  flags,
-    cl_dx9_media_adapter_type_khr adapter_type,
-    void *                        surface_info,
-    cl_uint                       plane,                                                                          
-    cl_int *                      errcode_ret) CL_API_SUFFIX__VERSION_1_2;
-
-typedef CL_API_ENTRY cl_int (CL_API_CALL *clEnqueueAcquireDX9MediaSurfacesKHR_fn)(
-    cl_command_queue command_queue,
-    cl_uint          num_objects,
-    const cl_mem *   mem_objects,
-    cl_uint          num_events_in_wait_list,
-    const cl_event * event_wait_list,
-    cl_event *       event) CL_API_SUFFIX__VERSION_1_2;
-
-typedef CL_API_ENTRY cl_int (CL_API_CALL *clEnqueueReleaseDX9MediaSurfacesKHR_fn)(
-    cl_command_queue command_queue,
-    cl_uint          num_objects,
-    const cl_mem *   mem_objects,
-    cl_uint          num_events_in_wait_list,
-    const cl_event * event_wait_list,
-    cl_event *       event) CL_API_SUFFIX__VERSION_1_2;
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif  /* __OPENCL_CL_DX9_MEDIA_SHARING_H */
-

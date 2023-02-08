@@ -1,14 +1,15 @@
-#ifndef COL2IM_H
-#define COL2IM_H
-#include "opencl.h"
+#include <image_transport/simple_publisher_plugin.h>
+#include <image_transport_tutorial/ResizedImage.h>
 
-void col2im_cpu(float* data_col,
-        int channels, int height, int width,
-        int ksize, int stride, int pad, float* data_im);
+class ResizedPublisher : public image_transport::SimplePublisherPlugin<image_transport_tutorial::ResizedImage>
+{
+public:
+  virtual std::string getTransportName() const
+  {
+    return "resized";
+  }
 
-#ifdef GPU
-void col2im_gpu(cl_mem data_col, int offset,
-                int channels, int height, int width,
-                int ksize, int stride, int pad, cl_mem data_im);
-#endif
-#endif
+protected:
+  virtual void publish(const sensor_msgs::Image& message,
+                       const PublishFn& publish_fn) const;
+};
