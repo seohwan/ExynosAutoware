@@ -64,9 +64,9 @@ def main():
         pb.set_description(package)
         
         if branch_name not in branches: # Branch is not exist
-            create_branch(package, package_path)
+            create_branch(branch_name, package_path)
         else:
-            update_branch(package, package_path)
+            update_branch(branch_name, package_path)
             branches.remove(branch_name)
     
     # Delete unexist branches    
