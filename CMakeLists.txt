@@ -1,89 +1,67 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(lidar_euclidean_cluster_detect)
+project(pcl_omp_registration)
 
-if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
-  add_definitions(-D__aarch64__)
-endif()
-
-
-
-find_package(catkin REQUIRED COMPONENTS
-  autoware_msgs
-  geometry_msgs
-  grid_map_cv
-  grid_map_msgs
-  grid_map_ros
-  pcl_ros
-  roscpp
-  sensor_msgs
-  std_msgs
-  tf
-  vector_map_server
-  rubis_lib
-  rubis_msgs
-)
-
-find_package(OpenMP)
-find_package(OpenCV REQUIRED)
-find_package(Eigen3 QUIET)
-
-set(CMAKE_CXX_FLAGS "-O2 -Wall ${CMAKE_CXX_FLAGS}")
+find_package(catkin REQUIRED COMPONENTS)
+find_package(PCL REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS
-    vector_map_server
-    grid_map_ros
-    grid_map_cv
-    grid_map_msgs
-    rubis_lib
+  LIBRARIES pcl_omp_registration
 )
 
-# Resolve system dependency on yaml-cpp, which apparently does not
-# provide a CMake find_package() module.
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(YAML_CPP REQUIRED yaml-cpp)
-find_path(YAML_CPP_INCLUDE_DIR NAMES yaml_cpp.h PATHS ${YAML_CPP_INCLUDE_DIRS})
-find_library(YAML_CPP_LIBRARY NAMES YAML_CPP PATHS ${YAML_CPP_LIBRARY_DIRS})
-link_directories(${YAML_CPP_LIBRARY_DIRS})
+find_package(Eigen3 QUIET)
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
-)
-link_directories(${OpenCV_LIBRARY_DIRS})
+if(NOT EIGEN3_FOUND)
+  # Fallback to cmake_modules
+  find_package(cmake_modules REQUIRED)
+  find_package(Eigen REQUIRED)
+  set(EIGEN3_INCLUDE_DIRS ${EIGEN_INCLUDE_DIRS})
+  set(EIGEN3_LIBRARIES ${EIGEN_LIBRARIES})  # Not strictly necessary as Eigen is head only
+  # Possibly map additional variables to the EIGEN3_ prefix.
+else()
+  set(EIGEN3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
+endif()
 
-#Euclidean Cluster
-add_executable(lidar_euclidean_cluster_detect
-  nodes/lidar_euclidean_cluster_detect/lidar_euclidean_cluster_detect.cpp
-  nodes/lidar_euclidean_cluster_detect/cluster.cpp
-)
+if(PCL_VERSION VERSION_LESS "1.7.2")
+  message("pcl_omp requires PCL 1.7.2 or higher versions")
+else()
+  set(srcs src/ndt.cpp)
 
-target_link_libraries(lidar_euclidean_cluster_detect
-  ${OpenCV_LIBRARIES}
-  ${catkin_LIBRARIES}
-  ${YAML_CPP_LIBRARIES}
-)
+  set(incs
+    include/pcl_omp_registration/ndt.h
+    include/pcl_omp_registration/registration.h
+  )
 
-add_dependencies(lidar_euclidean_cluster_detect
-  ${catkin_EXPORTED_TARGETS}
-)
+  set(impl_incs
+    include/pcl_omp_registration/impl/ndt.hpp
+    include/pcl_omp_registration/impl/registration.hpp
+  )
 
-install(
-  TARGETS
-    lidar_euclidean_cluster_detect
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+  include_directories(
+    include
+    ${PCL_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIRS}
+  )
 
-install(DIRECTORY launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-  PATTERN ".svn" EXCLUDE
-)
+  add_library(pcl_omp_registration
+    ${srcs}
+    ${incs}
+    ${impl_incs}
+  )
 
-install(DIRECTORY config/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
-  PATTERN ".svn" EXCLUDE
-)
+  target_link_libraries(pcl_omp_registration
+    ${PCL_LIBRARIES}
+    ${EIGEN3_LIBRARIES}
+  )
+
+  install(DIRECTORY include/${PROJECT_NAME}/
+    DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  )
+
+
+  install(TARGETS pcl_omp_registration
+    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  )
+endif()
