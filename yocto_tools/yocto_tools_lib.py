@@ -51,13 +51,6 @@ def get_dirs_and_branches_for_rubis_ws(path):
                 branches.append('vesc_driver')
                 branches.append('vesc_msgs')
             continue
-        elif file == 'inertiallabs_pkgs':   
-            if os.path.isdir(os.path.join(path, file)):                     
-                dirs.append('inertiallabs_pkgs/inertiallabs_ins')
-                dirs.append('inertiallabs_pkgs/inertiallabs_msgs')
-                branches.append('inertiallabs_ins')
-                branches.append('inertiallabs_msgs')
-            continue
         elif file == 'gicp_localizer':
             continue
         elif file == 'carla_points_map_loader':
