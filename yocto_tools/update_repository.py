@@ -33,14 +33,14 @@ def main():
                 if pkg not in local_branches: os.system('git checkout --force '+pkg)
             os.system('git checkout master')
 
-            print('Update packages in autware.ai/src/'+category+'/'+package_group)
+            print('Update packages in autoware.ai/src/'+category+'/'+package_group)
             
             pb = tqdm(range(len(packages))) # progress bar
             for i in pb:
                 package = packages[i]
                 package_path = os.path.join(package_group_path, package)
-                branch_name = 'origin/'+package
-                pb.set_description(package)
+                branch_name = package
+                pb.set_description(branch_name)
                 
                 if branch_name not in branches: # Branch is not exist
                     create_branch(package, package_path)
@@ -64,11 +64,13 @@ def main():
         pb.set_description(package)
         
         if branch_name not in branches: # Branch is not exist
+            print(1)
             create_branch(branch_name, package_path)
         else:
+            print(2)
             update_branch(branch_name, package_path)
             branches.remove(branch_name)
-    
+    print(3)
     # Delete unexist branches    
     for branch in branches:
         branch_name = branch.split('/')[1]
