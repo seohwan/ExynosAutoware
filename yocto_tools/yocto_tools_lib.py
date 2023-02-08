@@ -126,7 +126,6 @@ def update_branch(branch_name, src_path):
     # os.system('git commit -m \"Updated at +'+str(datetime.now())+'\"'+null_command)
     # os.system('git push --force origin '+branch_name+null_command)
     
-    branch_name = 'origin/' + branch_name
     null_command = ' > /dev/null 2>&1'
     
     os.system('git checkout -f '+branch_name)
