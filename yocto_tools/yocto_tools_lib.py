@@ -118,6 +118,8 @@ def create_branch(branch_name, src_path):
     os.system('git add -A'+null_command)
     os.system('git commit -m \"branch '+branch_name+' is created.\"'+null_command)
     os.system('git push origin '+branch_name+null_command)
+
+    exit()
     
     return
 
