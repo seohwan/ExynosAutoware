@@ -1,30 +1,18 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(vesc_ackermann)
+project(vesc_driver)
 
 find_package(catkin REQUIRED COMPONENTS
   nodelet
   pluginlib
   roscpp
-  nav_msgs
   std_msgs
-  geometry_msgs
-  tf
-  ackermann_msgs
   vesc_msgs
+  serial
 )
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS
-    nodelet
-    pluginlib
-    roscpp
-    nav_msgs
-    std_msgs
-    geometry_msgs
-    tf
-    ackermann_msgs
-    vesc_msgs
+  CATKIN_DEPENDS nodelet pluginlib roscpp std_msgs vesc_msgs serial
 )
 
 ###########
@@ -38,27 +26,24 @@ include_directories(
 )
 
 # node executable
-add_executable(vesc_to_odom_node src/vesc_to_odom_node.cpp
-                                 src/vesc_to_odom.cpp)
-add_dependencies(vesc_to_odom_node ${catkin_EXPORTED_TARGETS})
-target_link_libraries(vesc_to_odom_node
-  ${catkin_LIBRARIES}
-)
-
-add_executable(ackermann_to_vesc_node src/ackermann_to_vesc_node.cpp
-                                      src/ackermann_to_vesc.cpp)
-add_dependencies(ackermann_to_vesc_node ${catkin_EXPORTED_TARGETS})
-target_link_libraries(ackermann_to_vesc_node
+add_executable(vesc_driver_node src/vesc_driver_node.cpp
+                                src/vesc_driver.cpp
+                                src/vesc_interface.cpp
+                                src/vesc_packet.cpp
+                                src/vesc_packet_factory.cpp)
+add_dependencies(vesc_driver_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries(vesc_driver_node
   ${catkin_LIBRARIES}
 )
 
 # nodelet library
-add_library(vesc_ackermann_nodelet src/ackermann_to_vesc_nodelet.cpp
-                                   src/ackermann_to_vesc.cpp
-                                   src/vesc_to_odom_nodelet.cpp
-                                   src/vesc_to_odom.cpp)
-add_dependencies(vesc_ackermann_nodelet ${catkin_EXPORTED_TARGETS})
-target_link_libraries(vesc_ackermann_nodelet
+add_library(vesc_driver_nodelet src/vesc_driver_nodelet.cpp
+                                src/vesc_driver.cpp
+                                src/vesc_interface.cpp
+                                src/vesc_packet.cpp
+                                src/vesc_packet_factory.cpp)
+add_dependencies(vesc_driver_nodelet ${catkin_EXPORTED_TARGETS})
+target_link_libraries(vesc_driver_nodelet
   ${catkin_LIBRARIES}
 )
 
@@ -66,17 +51,17 @@ target_link_libraries(vesc_ackermann_nodelet
 ## Install ##
 #############
 
-install(TARGETS vesc_to_odom_node ackermann_to_vesc_node
+install(TARGETS vesc_driver_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-install(TARGETS vesc_ackermann_nodelet
+install(TARGETS vesc_driver_nodelet
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
 
 install(DIRECTORY include/${PROJECT_NAME}/
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
-install(FILES vesc_ackermann_nodelet.xml
+install(FILES vesc_driver_nodelet.xml
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 install(DIRECTORY launch/
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
