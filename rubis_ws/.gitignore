@@ -2,4 +2,3 @@ build
 devel
 *.pyc
 .vscode
-experiment_tool/data/*

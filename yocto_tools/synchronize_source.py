@@ -28,6 +28,17 @@ for i in range(len(autoware_copy_src_paths)):
 paths = str(os.popen('find ../rubis_ws/src').read())
 exynos_rubis_paths = paths.split('\n')
 
+for i, path in enumerate(exynos_rubis_paths):
+    if 'rubis_ws/src/vesc' in path:
+        exynos_rubis_paths[i] = exynos_rubis_paths[i].replace('rubis_ws/src/vesc_msgs', 'rubis_ws/src/vesc/vesc_msgs')
+    elif 'rubis_ws/src/image_transport' in path:
+        exynos_rubis_paths[i] = exynos_rubis_paths[i].replace('rubis_ws/src/image_transport', 'rubis_ws/src/image_common/image_transport')
+    elif 'rubis_ws/src/polled_camera' in path:
+        exynos_rubis_paths[i] = exynos_rubis_paths[i].replace('rubis_ws/src/polled_camera', 'rubis_ws/src/image_common/polled_camera')
+    elif 'rubis_ws/src/can_translate' in path:
+        exynos_rubis_paths[i] = exynos_rubis_paths[i].replace('rubis_ws/src/can_translate', 'rubis_ws/src/CAN_interface/can_translate')
+    
+
 remove_idx = []
 for i, line in enumerate(exynos_rubis_paths):
     if '.cpp' in line \
@@ -44,6 +55,9 @@ for index in sorted(remove_idx, reverse=True):
 rubis_copy_src_paths = []
 for line in exynos_rubis_paths:
     line = line.replace('../','~/')
+
+    
+
     if 'vision_darknet_detect_opencl' in line: continue
 
     rubis_copy_src_paths.append(line)

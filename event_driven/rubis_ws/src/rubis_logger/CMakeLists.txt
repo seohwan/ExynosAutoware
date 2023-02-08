@@ -14,41 +14,44 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 catkin_package(
-  # INCLUDE_DIRS include
+#  INCLUDE_DIRS include
 #  LIBRARIES rubis_logger
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
 
 include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
+  include ${catkin_INCLUDE_DIRS}
+# include
+# ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(logger_topic
-  include/rubis_logger/logger_topic.h
-  src/logger_topic.cpp
+add_executable(rubis_logger
+  include/rubis_logger/rubis_logger.h
+  src/rubis_logger.cpp
 )
-
-add_executable(logger_brake_dist
-  include/rubis_logger/logger_brake_dist.h
-  src/logger_brake_dist.cpp
-)
-
-target_link_libraries(logger_topic
+add_dependencies(rubis_logger ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(rubis_logger
   ${catkin_LIBRARIES}
 )
-target_link_libraries(logger_brake_dist
-  ${catkin_LIBRARIES}
-)
-add_dependencies(logger_topic
-  ${catkin_EXPORTED_TARGETS}
-)
-add_dependencies(logger_brake_dist
-  ${catkin_EXPORTED_TARGETS}
+
+install(
+  TARGETS
+    rubis_logger
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-# add_dependencies(rubis_logger ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(rubis_logger
-#   ${catkin_LIBRARIES}
-# )
+install(DIRECTORY include/
+  DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
+  PATTERN ".svn" EXCLUDE
+)
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+  PATTERN ".svn" EXCLUDE
+)
+
+install(DIRECTORY cfg/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/cfg
+)
