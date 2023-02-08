@@ -1,72 +1,181 @@
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package op_ros_helpers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package autoware_msgs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1.13.0 (2019-12-03)
+-------------------
+* Lateral limitation filter by twist_filter
+* add param of decision_maker: disable insert stopline
+* Add Message Properties for use_sim and use_decision_maker
+* Update package.xml files to Format 2.
+* Contributors: Joshua Whitley, Yuma Nihei, s-azumi
+
+1.12.0 (2019-07-12)
+-------------------
 
 1.11.0 (2019-03-21)
 -------------------
+* [Feature] Rebuild decision maker (`#1609 <https://github.com/CPFL/Autoware/issues/1609>`_)
+* [Feature] waypoint replanner and extractor (`#1951 <https://github.com/CPFL/Autoware/issues/1951>`_)
 * Fix license notice in corresponding package.xml
-* Contributors: amc-nu
+* Contributors: Yuma Nihei, amc-nu, s-azumi
 
 1.10.0 (2019-01-17)
 -------------------
-* Fixes for catkin_make
-* Use colcon as the build tool (`#1704 <https://github.com/CPFL/Autoware/issues/1704>`_)
-  * Switch to colcon as the build tool instead of catkin
-  * Added cmake-target
-  * Added note about the second colcon call
-  * Added warning about catkin* scripts being deprecated
-  * Fix COLCON_OPTS
-  * Added install targets
-  * Update Docker image tags
-  * Message packages fixes
-  * Fix missing dependency
-* Fix Ros/ROS naming convention
-* Contributors: Esteve Fernandez, amc-nu
+* Fix Kf/KF naming convention
+* Fix Dpm/DPM naming convention
+* Fix Ndt/NDT naming convention
+* Fix Ssd/SSD naming convention
+* Contributors: Esteve Fernandez
 
 1.9.1 (2018-11-06)
 ------------------
 
 1.9.0 (2018-10-31)
 ------------------
-* [fix] PascalCase messages (`#1408 <https://github.com/CPFL/Autoware/issues/1408>`_)
-  * Switch message files to pascal case
-  * Switch message names to pascal case in Runtime Manager
-  * Switch message names to pascal case in *.yaml
-  * Rename brake_cmd and steer_cmd to BrakeCmd and SteerCmd in main.yaml
+* Moved configuration messages to autoware_config_msgs
 * Contributors: Esteve Fernandez
-
-1.8.0 (2018-08-31)
-------------------
-* [Fix] Moved C++11 flag to autoware_build_flags (`#1395 <https://github.com/CPFL/Autoware/pull/1395>`_)
-* [Feature] Makes sure that all binaries have their dependencies linked (`#1385 <https://github.com/CPFL/Autoware/pull/1385>`_)
-* Fix Vector Map parser problem, tested with three different maps
-  Fix Global Planning function for the new map modification
-  Add OpenPlanner Simulator for perception, traffic lights, cars
-  Add OpenPlanner new version to replace wp_planner and dp_planner
-  Remove unnecessary files from OpenPlanner libraries
-  Test Global and Local planning
-  Test Tracking node (kf_contour_track)
-  Test Simulation Nodes
-  Test Utility Nodes
-* Update op_utility files for csv files loading
-  Update MappingHelpers with latest modifications
-  Update PlanningHelpers with latest modifications
-  add op_common_param node, for setting OpenPlanner parameter for all related nodes such as lidar_kf_contour_track
-  Improve tracking by including size different in association function
-  Update way_planner, dp_planner for compatibility with new Mapping Modifications, Map format is backward compatible
-* Update OpenPlanner libraries (op_planner, op_utitity, op_ros_helpers)
-  Update ring ground filter with latest implementation
-  Update lidar_kf_contour_track with latest implementation
-  Add op_utilities nodes (op_bag_player, op_data_logger, op_pose2tf)
-  Modify autoware_msgs for OpenPlanner use (CloudCluster, DetectedObject, lane, waypoint)
-  Update UI computing.yaml for the new nodes and modifies parameters
-  Update UI sensing.yaml for updated ring_ground_filter params
-* Contributors: Esteve Fernandez, hatem-darweesh
 
 1.7.0 (2018-05-18)
 ------------------
 * update Version from 1.6.3 to 1.7.0 in package.xml and CHANGELOG.rst
-* [fix] Fixes for all packages and dependencies (`#1240 <https://github.com/CPFL/Autoware/pull/1240>`_)
+* [Fix] rename packages (`#1269 <https://github.com/CPFL/Autoware/issues/1269>`_)
+  * rename lidar_tracker
+  * Modify pf_lidar_track's cmake file
+  * Refactor code
+  * Rename from euclidean_lidar_tracker to lidar_euclidean_track
+  * Rename from kf_contour_track to lidar_kf_contour_track
+  * Rename from kf_lidar_track to lidar_kf_track, but need some modification in euclidean cluster(Cluster.h)
+  * Rename from pf_lidar_tarck to lidar_pf_track
+  * Rename range_fusion
+  * Rename obj_reproj
+  * Rename euclidean_cluster to lidar_euclidean_cluster_detect
+  * Rename svm_lidar_detect to lidar_svm_detect
+  * Rename kf_lidar_track to lidar_kf_track
+  * Change version 1.6.3 to 1.7.0 in pacakge.xml
+  * Modify CMake so that extrenal header would be loaded
+  * Remove obj_reproj from cv_tracker
+  * Add interface.yaml
+  * Rename road_wizard to trafficlight_recognizer
+  * create common directory
+  * Add lidar_imm_ukf_pda_track
+  * create vision_detector and moved cv
+  * Modify interface.yaml and package.xml
+  * remove dpm_ocv
+  * moved directory
+  * Delete unnecessary launch file
+  * Delete rcnn related file and code
+  * separated dummy_track from cv_tracker
+  * separated klt_track from cv_tracker
+  * Fix a cmake
+  * Remove unnecessary dependency of lidar_euclidean_cluster_detect package
+  * Rename image_segmenter to vision_segment_enet_detect
+  * Remove unnecessary dependency of lidar_svm_detect package
+  * separated kf_track and fix a some compiling issue
+  * move viewers
+  * merge ndt_localizer and icp_localizer, and rename to lidar_localizer
+  * Remove unnecessary dependency of lidar_euclidean_track
+  * moved image lib
+  * add launch
+  * lib move under lidar_tracker
+  * Rename dpm_ttic to vision_dpm_ttic_detect
+  * rename yolo3detector to vision_yolo3_detect
+  * Modify cmake and package.xml in vision_dpm_ttic_detect
+  * moved sourcefiles into nodes dir
+  * moved sourcefiles into nodes dir
+  * Move cv_tracker/data folder and delete cv_tracker/model folder
+  * fix a package file and cmake
+  * Rename yolo2 -> vision_yolo2_detect
+  * fix a package file and cmake
+  * Fix package name of launch file
+  * Rename ssd to vision_ssd_detect
+  * fixed cmake and package for decerese dependencies
+  * remove top packages dir for detection
+  * fixed cmake for cuda
+  * Rename lane_detector to vision_lane_detect
+  * Modify package.xml in lidar-related packages
+  * Remove unnecessary dependencies in lidar_detector and lidar_tracker
+  * Modify computing.yaml for dpm_ttic
+  * Modify dpm_ttic launch file
+  * Remove/Add dependencies to trafficlight_recognizer
+  * Update data folder in dpm_ttic
+  * Modified CMake and package file in dpm_ttic.
+  * Remove src dir in imm_ukf_pda_track
+  * removed unnecessary comments
+  * rename lidar_tracker
+  * Modify pf_lidar_track's cmake file
+  * Refactor code
+  * Rename from euclidean_lidar_tracker to lidar_euclidean_track
+  * Rename from kf_contour_track to lidar_kf_contour_track
+  * Rename from kf_lidar_track to lidar_kf_track, but need some modification in euclidean cluster(Cluster.h)
+  * Rename from pf_lidar_tarck to lidar_pf_track
+  * Rename range_fusion
+  * Rename obj_reproj
+  * Rename road_wizard to trafficlight_recognizer
+  * Rename euclidean_cluster to lidar_euclidean_cluster_detect
+  * Rename svm_lidar_detect to lidar_svm_detect
+  * Rename kf_lidar_track to lidar_kf_track
+  * Change version 1.6.3 to 1.7.0 in pacakge.xml
+  * Modify CMake so that extrenal header would be loaded
+  * Remove obj_reproj from cv_tracker
+  * Add interface.yaml
+  * create common directory
+  * Add lidar_imm_ukf_pda_track
+  * create vision_detector and moved cv
+  * Modify interface.yaml and package.xml
+  * remove dpm_ocv
+  * moved directory
+  * Delete unnecessary launch file
+  * Delete rcnn related file and code
+  * separated dummy_track from cv_tracker
+  * separated klt_track from cv_tracker
+  * Fix a cmake
+  * Remove unnecessary dependency of lidar_euclidean_cluster_detect package
+  * Rename image_segmenter to vision_segment_enet_detect
+  * Remove unnecessary dependency of lidar_svm_detect package
+  * separated kf_track and fix a some compiling issue
+  * move viewers
+  * merge ndt_localizer and icp_localizer, and rename to lidar_localizer
+  * Remove unnecessary dependency of lidar_euclidean_track
+  * moved image lib
+  * add launch
+  * lib move under lidar_tracker
+  * Rename dpm_ttic to vision_dpm_ttic_detect
+  * rename yolo3detector to vision_yolo3_detect
+  * Modify cmake and package.xml in vision_dpm_ttic_detect
+  * moved sourcefiles into nodes dir
+  * moved sourcefiles into nodes dir
+  * Move cv_tracker/data folder and delete cv_tracker/model folder
+  * fix a package file and cmake
+  * Rename yolo2 -> vision_yolo2_detect
+  * fix a package file and cmake
+  * Fix package name of launch file
+  * Rename ssd to vision_ssd_detect
+  * fixed cmake and package for decerese dependencies
+  * remove top packages dir for detection
+  * fixed cmake for cuda
+  * Rename lane_detector to vision_lane_detect
+  * Modify package.xml in lidar-related packages
+  * Remove unnecessary dependencies in lidar_detector and lidar_tracker
+  * Modify computing.yaml for dpm_ttic
+  * Modify dpm_ttic launch file
+  * Remove/Add dependencies to trafficlight_recognizer
+  * Update data folder in dpm_ttic
+  * Modified CMake and package file in dpm_ttic.
+  * Remove src dir in imm_ukf_pda_track
+  * Fix bug for not starting run time manager
+  * Remove invalid dependency
+* Return disable_decision_maker to rosparam
+* Rename class and functions filter->replan
+* Fix message
+* Fix config message path
+* change can_translator
+  - Support to vehicle_status(can intermediate layer)
+  - Separate the can translator and the odometry.
+  - Support to output vehicle autonomous mode
+* add vehicle_status msg
+* Add end point offset option
+* Fix/cmake cleanup (`#1156 <https://github.com/CPFL/Autoware/issues/1156>`_)
   * Initial Cleanup
   * fixed also for indigo
   * kf cjeck
@@ -98,73 +207,17 @@ Changelog for package op_ros_helpers
   * Fix Qt5 Fastvirtualscan
   * Fixed qt5 system dependencies for rosdep
   * NDT TKU Fix catkin not pacakged
-  * More in detail dependencies fixes for more packages
-  * GLEW library for ORB
-  * Ignore OrbLocalizer
-  * Ignore Version checker
-  * Fix for driveworks interface
-  * driveworks not catkinpackagedd
-  * Missing catkin for driveworks
-  * libdpm opencv not catkin packaged
-  * catkin lib gnss  not included in obj_db
-  * Points2Polygon fix
-  * More missing dependencies
-  * image viewer not packaged
-  * Fixed SSH2 detection, added viewers for all distros
-  * Fix gnss localizer incorrect dependency config
-  * Fixes to multiple packages dependencies
-  * gnss plib and package
-  * More fixes to gnss
-  * gnss dependencies for gnss_loclaizer
-  * Missing gnss dependency for gnss on localizer
-  * More fixes for dependencies
-  Replaced gnss for autoware_gnss_library
-  * gnss more fixes
-  * fixes to more dependencies
-  * header dependency
-  * Debug message
-  * more debug messages changed back to gnss
-  * debud messages
-  * gnss test
-  * gnss install command
-  * Several fixes for OpenPlanner and its lbiraries
-  * Fixes to ROSInterface
-  * More fixes to robotsdk and rosinterface
-  * robotsdk calibration fix
-  * Fixes to rosinterface robotsdk libraries and its nodes
-  * Fixes to Qt5 missing dependencies in robotsdk
-  * glviewer missing dependencies
-  * Missing qt specific config cmake for robotsdk
-  * disable cv_tracker
-  * Fix to open planner un needed dependendecies
-  * Fixes for libraries indecision maker
-  * Fixes to libraries decision_maker installation
-  * Gazebo on Kinetic
-  * Added Missing library
-  * * Removed Gazebo and synchonization packages
-  * Renames vmap in lane_planner
-  * Added installation commands for missing pakcages
-  * Fixes to lane_planner
-  * Added NDT TKU Glut extra dependencies
-  * ndt localizer/lib fast pcl fixes
-  re enable cv_tracker
-  * Fix kf_lib
-  * Keep industrial_ci
-  * Fixes for dpm library
-  * Fusion lib fixed
-  * dpm and fusion header should match exported project name
-  * Fixes to dpm_ocv  ndt_localizer and pcl_omp
-  * no fast_pcl anymore
-  * fixes to libdpm and its package
-  * CI test
-  * test with native travis ci
-  * missing update for apt
-  * Fixes to pcl_omp installation and headers
-  * Final fixes for tests, modified README
-  * * Fixes to README
-  * Enable industrial_ci
-  * re enable native travis tests
-* Contributors: Abraham Monrroy, Kosuke Murakami
+  * Fixes from industrial_ci
+* add ctrl_cmd/cmd/linear_acceletion
+* Correspond to new version of waypoint_csv(for decision_maker)
+* fix runtime_manager layout and description
+* Add config_callback for online waypoint tuning
+* Separate configration for speed planning against obstacle/stopline (Note: no logics changed)
+* parametrize detection area
+* add ratio for stopline target
+* Add a transition to stopstate to re-start only manually
+* add new param for decision_maker
+* Contributors: Abraham Monrroy, Akihito Ohsato, Dejan Pangercic, Kosuke Murakami, Yamato ANDO, Yuma, Yuma Nihei, Yusuke FUJII
 
 1.6.3 (2018-03-06)
 ------------------
@@ -182,34 +235,79 @@ Changelog for package op_ros_helpers
 1.6.0 (2017-12-11)
 ------------------
 * Prepare release for 1.6.0
+* Added support to publish result of multiple traffic signals according to the lane
+  VectorMapServer Support to publish signals on current lane if current_pose and final_waypoints available
+* Initial modifications to feat_proj, tlr, context and vector_map loader, server and client to support different types of traffic signals
 * - Add new Node for object polygon representation and tracking (kf_contour_tracker)
   - Add launch file and tune tracking parameters
   - Test with Moriyama rosbag
-* - Update OpenPlanner libraries (plannerh, simuh, utilityh) with the latest modifications
-  - Fix inconsistency after library update, make sure old (way_planner, dp_planner) are working fine
-  - Create new package (op_local_planner)
-  - Create common launch file for local planning params
-  - Create new node (op_trajectory_generator)
-  - Create launch file for trajectory generation only
-  - Test generating trajectories (rollouts) in simulation with way_planner
-  - Test generating trajectories with real rosbag data with way_planner
-  - Test generating trajectories with real rosbag data and waypoints_loader
-* Contributors: Yamato ANDO, hatem-darweesh
+* Fixed:
+  - callback
+  - laneshift
+  Added:
+  - publisher for laneid
+  - new lanechange flag
+  - new param for decisionMaker
+* add to insert shift lane
+* Support to lanechange similar to state_machine(old) package
+* Changed path state recognition to the way based on /lane_waypoints_array
+* Fix build error, add msg definition
+* Rename and merge msgs
+* add path velocity smoothing
+* add msg of waypointstate for decision_maker
+* Feature/fusion_filter - fusion multiple lidar (`#842 <https://github.com/cpfl/autoware/issues/842>`_)
+  * Add fusion_filter to merge multiple lidar pointclouds
+  * Refactor fusion_filter
+  * Apply clang-format and rebase develop
+  * Add fusion_filter launch and runtime_manager config
+  * Fix names, fusion_filter -> points_concat_filter
+  * Fix build error in ros-indigo
+  * Fix some default message/frame names
+  * Refactor code and apply clang-format
+  * Add configrations for runtime_manager
+  * Fix CMake
+* refactor code
+* refactor code
+* refactor msg and add blinker to msg
+* Add ground_filter config for runtime_manager (`#828 <https://github.com/cpfl/autoware/issues/828>`_)
+* Ray Ground Filter Initial Commit
+* add approximate_ndt_mapping (`#811 <https://github.com/cpfl/autoware/issues/811>`_)
+* add new msg and rename msg
+* add mqtt sender
+* Contributors: AMC, Akihito Ohsato, Yamato ANDO, Yuki Iida, Yuki Kitsukawa, Yusuke FUJII, hatem-darweesh
 
 1.5.1 (2017-09-25)
 ------------------
+* Release/1.5.1 (`#816 <https://github.com/cpfl/autoware/issues/816>`_)
+  * fix a build error by gcc version
+  * fix build error for older indigo version
+  * update changelog for v1.5.1
+  * 1.5.1
+* Contributors: Yusuke FUJII
 
 1.5.0 (2017-09-21)
 ------------------
+* Update changelog
+* update decision maker config
+* Add to support dynamical parameter for decision_maker
+* Add decision_maker config
+* add config parameter
+* autoware_msgs does not depend on jsk_rviz_plugin, cmake and package.xml were not correct
+* Contributors: Dejan Pangercic, Yusuke FUJII
 
 1.4.0 (2017-08-04)
 ------------------
+* version number must equal current release number so we can start releasing in the future
+* added changelogs
+* Contributors: Dejan Pangercic
 
 1.3.1 (2017-07-16)
 ------------------
 
 1.3.0 (2017-07-14)
 ------------------
+* convert to autoware_msgs
+* Contributors: YamatoAndo
 
 1.2.0 (2017-06-07)
 ------------------

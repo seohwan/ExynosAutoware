@@ -1,63 +1,53 @@
 cmake_minimum_required(VERSION 2.8.3)
-
-project(op_ros_helpers)
-
-
+project(autoware_config_msgs)
 
 find_package(catkin REQUIRED COMPONENTS
-  autoware_msgs
-  geometry_msgs
-  jsk_recognition_msgs
-  libwaypoint_follower
-  map_file
-  op_planner
-  op_utility
-  pcl_conversions
-  pcl_ros
-  sensor_msgs
-  tf
-  vector_map_msgs
+  message_generation
+  std_msgs
 )
 
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS
-    autoware_msgs
-    geometry_msgs
-    libwaypoint_follower
-    vector_map_msgs
+add_message_files(
+  DIRECTORY msg
+  FILES
+    ConfigApproximateNDTMapping.msg
+    ConfigCarDPM.msg
+    ConfigCarFusion.msg
+    ConfigCarKF.msg
+    ConfigCompareMapFilter.msg
+    ConfigDecisionMaker.msg
+    ConfigDistanceFilter.msg
+    ConfigICP.msg
+    ConfigLaneRule.msg
+    ConfigLaneSelect.msg
+    ConfigLaneStop.msg
+    ConfigLatticeVelocitySet.msg
+    ConfigNDT.msg
+    ConfigNDTMapping.msg
+    ConfigNDTMappingOutput.msg
+    ConfigPedestrianDPM.msg
+    ConfigPedestrianFusion.msg
+    ConfigPedestrianKF.msg
+    ConfigPlannerSelector.msg
+    ConfigPoints2Polygon.msg
+    ConfigRandomFilter.msg
+    ConfigRayGroundFilter.msg
+    ConfigRcnn.msg
+    ConfigRingFilter.msg
+    ConfigRingGroundFilter.msg
+    ConfigSSD.msg
+    ConfigTwistFilter.msg
+    ConfigVelocitySet.msg
+    ConfigVoxelGridFilter.msg
+    ConfigWaypointFollower.msg
+    ConfigWaypointReplanner.msg
 )
 
-set(CMAKE_CXX_FLAGS "-O2 -g -Wall -Wno-unused-result ${CMAKE_CXX_FLAGS}")
-
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
+generate_messages(
+  DEPENDENCIES
+    std_msgs
 )
 
-set(ROS_HELPERS_SRC
-  src/PolygonGenerator.cpp
-  src/op_ROSHelpers.cpp
-)
-
-## Declare a cpp library
-add_library(${PROJECT_NAME}
-  ${ROS_HELPERS_SRC}
-)
-
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.h"
-)
-
-
-install(TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+catkin_package(CATKIN_DEPENDS
+  message_runtime
+  std_msgs
 )
