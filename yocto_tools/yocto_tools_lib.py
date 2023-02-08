@@ -62,9 +62,9 @@ def get_dirs_and_branches_for_rubis_ws(path):
             continue
         elif file == 'carla_points_map_loader':
             continue
-        elif file == 'CAN_translate':
+        elif file == 'CAN_interface':
             if os.path.isdir(os.path.join(path, file)):
-                dirs.append('CAN_translate/can_translate')
+                dirs.append('CAN_interface/can_translate')
                 branches.append('can_translate')
             continue
 
