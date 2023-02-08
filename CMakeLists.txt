@@ -1,62 +1,54 @@
 cmake_minimum_required(VERSION 2.8.3)
-
-project(op_ros_helpers)
-
+project(map_tools)
 
 
 find_package(catkin REQUIRED COMPONENTS
-  autoware_msgs
-  geometry_msgs
-  jsk_recognition_msgs
-  libwaypoint_follower
-  map_file
-  op_planner
-  op_utility
   pcl_conversions
   pcl_ros
+  roscpp
   sensor_msgs
   tf
-  vector_map_msgs
 )
 
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS
-    autoware_msgs
-    geometry_msgs
-    libwaypoint_follower
-    vector_map_msgs
+    pcl_conversions
+    pcl_ros
+    roscpp
+    sensor_msgs
+    tf
 )
 
-set(CMAKE_CXX_FLAGS "-O2 -g -Wall -Wno-unused-result ${CMAKE_CXX_FLAGS}")
+SET(CMAKE_CXX_FLAGS "-O2 -g -Wall ${CMAKE_CXX_FLAGS}")
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories(include ${catkin_INCLUDE_DIRS})
 
-set(ROS_HELPERS_SRC
-  src/PolygonGenerator.cpp
-  src/op_ROSHelpers.cpp
-)
+add_executable(pcd_filter nodes/pcd_filter/pcd_filter.cpp)
+add_executable(pcd_binarizer nodes/pcd_binarizer/pcd_binarizer.cpp)
+add_executable(pcd_arealist nodes/pcd_arealist/pcd_arealist.cpp)
+add_executable(csv2pcd nodes/pcd_converter/csv2pcd.cpp)
+add_executable(pcd2csv nodes/pcd_converter/pcd2csv.cpp)
+add_executable(map_extender nodes/map_extender/map_extender.cpp)
+add_executable(pcd_grid_divider nodes/pcd_grid_divider/pcd_grid_divider.cpp)
 
-## Declare a cpp library
-add_library(${PROJECT_NAME}
-  ${ROS_HELPERS_SRC}
-)
-
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.h"
-)
+target_link_libraries(pcd_filter ${catkin_LIBRARIES})
+target_link_libraries(pcd_binarizer ${catkin_LIBRARIES})
+target_link_libraries(pcd_arealist ${catkin_LIBRARIES})
+target_link_libraries(csv2pcd ${catkin_LIBRARIES})
+target_link_libraries(pcd2csv ${catkin_LIBRARIES})
+target_link_libraries(map_extender ${catkin_LIBRARIES})
+target_link_libraries(pcd_grid_divider ${catkin_LIBRARIES})
 
 
-install(TARGETS ${PROJECT_NAME}
+install(
+  TARGETS
+    csv2pcd
+    map_extender
+    pcd2csv
+    pcd_arealist
+    pcd_binarizer
+    pcd_filter
+    pcd_grid_divider
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
