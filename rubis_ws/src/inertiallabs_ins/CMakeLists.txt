@@ -29,7 +29,7 @@ catkin_package(
 include_directories(${Opencv_INCLUDE_DIRS})
 include_directories(${system_lib_INCLUDE_DIRS})
 
-include_directories(../inertiallabs_sdk/)
+include_directories(src/inertiallabs_sdk/)
 
 if(WIN32)
 	set(IL_PLATFORM "windows")
@@ -38,10 +38,10 @@ else()
 endif()
 
 add_executable(il_ins src/il_ins.cpp
-                      ../inertiallabs_sdk/ILDriver.cpp
-                      ../inertiallabs_sdk/UDDParser.cpp
-                      ../inertiallabs_sdk/platforms/${IL_PLATFORM}/SerialPort.cpp
-                      ../inertiallabs_sdk/platforms/${IL_PLATFORM}/NetClient.cpp
+                      src/inertiallabs_sdk/ILDriver.cpp
+                      src/inertiallabs_sdk/UDDParser.cpp
+                      src/inertiallabs_sdk/platforms/${IL_PLATFORM}/SerialPort.cpp
+                      src/inertiallabs_sdk/platforms/${IL_PLATFORM}/NetClient.cpp
 )
 add_dependencies(il_ins inertiallabs_msgs_generate_messages_cpp)
 if(WIN32)
@@ -50,3 +50,15 @@ else()
 	target_link_libraries(il_ins ${catkin_LIBRARIES} pthread )
 endif()
 
+install(
+  TARGETS
+    il_ins
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+  PATTERN ".svn" EXCLUDE
+)
