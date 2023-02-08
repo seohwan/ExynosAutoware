@@ -1,51 +1,49 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(op_utility)
+project(vector_map)
 
 
 
 find_package(catkin REQUIRED COMPONENTS
-  cmake_modules
-  vector_map_msgs 
-  vector_map_server
+  tf
+  geometry_msgs
+  roslint
+  vector_map_msgs
+  visualization_msgs
 )
 
-find_package(TinyXML REQUIRED)
+set(CMAKE_CXX_FLAGS "-O2 -Wall ${CMAKE_CXX_FLAGS}")
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS vector_map_msgs vector_map_server
+  CATKIN_DEPENDS tf geometry_msgs visualization_msgs vector_map_msgs
 )
-
-###########
-## Build ##
-###########
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
 )
 
-set(UTILITYH_SRC
-  src/DataRW.cpp
-  src/UtilityH.cpp
-)
-
-## Declare a cpp library
 add_library(${PROJECT_NAME}
-  ${UTILITYH_SRC}
+  lib/vector_map/vector_map.cpp
+)
+add_dependencies(${PROJECT_NAME}
+  ${catkin_EXPORTED_TARGETS}
 )
 
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
-  ${TinyXML_LIBRARIES}
 )
 
+set(ROSLINT_CPP_OPTS "--filter=-build/c++14,-runtime/references")
+roslint_cpp()
+
+## Install project namespaced headers
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.h"
 )
 
+## Install executables and/or libraries
 install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
