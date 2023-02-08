@@ -1,67 +1,33 @@
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package op_ros_helpers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package gnss
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 1.11.0 (2019-03-21)
 -------------------
+* add constructor (`#1913 <https://github.com/CPFL/Autoware/issues/1913>`_)
 * Fix license notice in corresponding package.xml
-* Contributors: amc-nu
+* Contributors: YamatoAndo, amc-nu
 
 1.10.0 (2019-01-17)
 -------------------
-* Fixes for catkin_make
-* Use colcon as the build tool (`#1704 <https://github.com/CPFL/Autoware/issues/1704>`_)
-  * Switch to colcon as the build tool instead of catkin
-  * Added cmake-target
-  * Added note about the second colcon call
-  * Added warning about catkin* scripts being deprecated
-  * Fix COLCON_OPTS
-  * Added install targets
-  * Update Docker image tags
-  * Message packages fixes
-  * Fix missing dependency
-* Fix Ros/ROS naming convention
-* Contributors: Esteve Fernandez, amc-nu
+* Switch to Apache 2 license (develop branch) (`#1741 <https://github.com/CPFL/Autoware/issues/1741>`_)
+  * Switch to Apache 2
+  * Replace BSD-3 license header with Apache 2 and reassign copyright to the
+  Autoware Foundation.
+  * Update license on Python files
+  * Update copyright years
+  * Add #ifndef/define _POINTS_IMAGE_H\_
+  * Updated license comment
+* Contributors: Esteve Fernandez
 
 1.9.1 (2018-11-06)
 ------------------
 
 1.9.0 (2018-10-31)
 ------------------
-* [fix] PascalCase messages (`#1408 <https://github.com/CPFL/Autoware/issues/1408>`_)
-  * Switch message files to pascal case
-  * Switch message names to pascal case in Runtime Manager
-  * Switch message names to pascal case in *.yaml
-  * Rename brake_cmd and steer_cmd to BrakeCmd and SteerCmd in main.yaml
-* Contributors: Esteve Fernandez
 
 1.8.0 (2018-08-31)
 ------------------
-* [Fix] Moved C++11 flag to autoware_build_flags (`#1395 <https://github.com/CPFL/Autoware/pull/1395>`_)
-* [Feature] Makes sure that all binaries have their dependencies linked (`#1385 <https://github.com/CPFL/Autoware/pull/1385>`_)
-* Fix Vector Map parser problem, tested with three different maps
-  Fix Global Planning function for the new map modification
-  Add OpenPlanner Simulator for perception, traffic lights, cars
-  Add OpenPlanner new version to replace wp_planner and dp_planner
-  Remove unnecessary files from OpenPlanner libraries
-  Test Global and Local planning
-  Test Tracking node (kf_contour_track)
-  Test Simulation Nodes
-  Test Utility Nodes
-* Update op_utility files for csv files loading
-  Update MappingHelpers with latest modifications
-  Update PlanningHelpers with latest modifications
-  add op_common_param node, for setting OpenPlanner parameter for all related nodes such as lidar_kf_contour_track
-  Improve tracking by including size different in association function
-  Update way_planner, dp_planner for compatibility with new Mapping Modifications, Map format is backward compatible
-* Update OpenPlanner libraries (op_planner, op_utitity, op_ros_helpers)
-  Update ring ground filter with latest implementation
-  Update lidar_kf_contour_track with latest implementation
-  Add op_utilities nodes (op_bag_player, op_data_logger, op_pose2tf)
-  Modify autoware_msgs for OpenPlanner use (CloudCluster, DetectedObject, lane, waypoint)
-  Update UI computing.yaml for the new nodes and modifies parameters
-  Update UI sensing.yaml for updated ring_ground_filter params
-* Contributors: Esteve Fernandez, hatem-darweesh
 
 1.7.0 (2018-05-18)
 ------------------
@@ -182,28 +148,29 @@ Changelog for package op_ros_helpers
 1.6.0 (2017-12-11)
 ------------------
 * Prepare release for 1.6.0
-* - Add new Node for object polygon representation and tracking (kf_contour_tracker)
-  - Add launch file and tune tracking parameters
-  - Test with Moriyama rosbag
-* - Update OpenPlanner libraries (plannerh, simuh, utilityh) with the latest modifications
-  - Fix inconsistency after library update, make sure old (way_planner, dp_planner) are working fine
-  - Create new package (op_local_planner)
-  - Create common launch file for local planning params
-  - Create new node (op_trajectory_generator)
-  - Create launch file for trajectory generation only
-  - Test generating trajectories (rollouts) in simulation with way_planner
-  - Test generating trajectories with real rosbag data with way_planner
-  - Test generating trajectories with real rosbag data and waypoints_loader
-* Contributors: Yamato ANDO, hatem-darweesh
+* support all plane(1-19) in geo_pos_conv
+* Contributors: Yamato ANDO, yukikitsukawa
 
 1.5.1 (2017-09-25)
 ------------------
+* Release/1.5.1 (`#816 <https://github.com/cpfl/autoware/issues/816>`_)
+  * fix a build error by gcc version
+  * fix build error for older indigo version
+  * update changelog for v1.5.1
+  * 1.5.1
+* Contributors: Yusuke FUJII
 
 1.5.0 (2017-09-21)
 ------------------
+* Update changelog
+* install target
+* Contributors: Dejan Pangercic, Yusuke FUJII
 
 1.4.0 (2017-08-04)
 ------------------
+* version number must equal current release number so we can start releasing in the future
+* added changelogs
+* Contributors: Dejan Pangercic
 
 1.3.1 (2017-07-16)
 ------------------
@@ -228,3 +195,5 @@ Changelog for package op_ros_helpers
 
 1.0.0 (2016-12-22)
 ------------------
+* Initial commit for public release
+* Contributors: Shinpei Kato
