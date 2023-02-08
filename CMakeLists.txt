@@ -1,63 +1,73 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
+project(image_transport)
 
-project(op_ros_helpers)
-
-
-
-find_package(catkin REQUIRED COMPONENTS
-  autoware_msgs
-  geometry_msgs
-  jsk_recognition_msgs
-  libwaypoint_follower
-  map_file
-  op_planner
-  op_utility
-  pcl_conversions
-  pcl_ros
-  sensor_msgs
-  tf
-  vector_map_msgs
+find_package(catkin REQUIRED
+  COMPONENTS
+    message_filters
+    pluginlib
+    rosconsole
+    roscpp
+    roslib
+    sensor_msgs
+    rubis_lib
 )
+
+find_package(Boost REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS
-    autoware_msgs
-    geometry_msgs
-    libwaypoint_follower
-    vector_map_msgs
+  DEPENDS message_filters pluginlib rosconsole roscpp roslib sensor_msgs
 )
 
-set(CMAKE_CXX_FLAGS "-O2 -g -Wall -Wno-unused-result ${CMAKE_CXX_FLAGS}")
+include_directories(include ${catkin_INCLUDE_DIRS})
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
-
-set(ROS_HELPERS_SRC
-  src/PolygonGenerator.cpp
-  src/op_ROSHelpers.cpp
-)
-
-## Declare a cpp library
+# Build libimage_transport
 add_library(${PROJECT_NAME}
-  ${ROS_HELPERS_SRC}
+  src/camera_common.cpp
+  src/camera_publisher.cpp
+  src/camera_subscriber.cpp
+  src/image_transport.cpp
+  src/publisher.cpp
+  src/single_subscriber_publisher.cpp
+  src/subscriber.cpp
 )
-
+add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}
+  ${Boost_LIBRARIES}
   ${catkin_LIBRARIES}
 )
 
+# Build libimage_transport_plugins
+add_library(${PROJECT_NAME}_plugins src/manifest.cpp src/raw_publisher.cpp)
+target_link_libraries(${PROJECT_NAME}_plugins ${PROJECT_NAME})
+
+# Install plugin DLL to ${CATKIN_PACKAGE_LIB_DESTINATION} according to the path in default_plugins.xml
+install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_plugins
+        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        RUNTIME DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        COMPONENT main
+)
 install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.h"
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 )
 
+# add two execs
+add_executable(republish src/republish.cpp)
+target_link_libraries(republish ${PROJECT_NAME})
 
-install(TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+add_executable(list_transports src/list_transports.cpp)
+target_link_libraries(list_transports
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
+install(TARGETS list_transports republish
+        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+# add xml file
+install(FILES default_plugins.xml
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )

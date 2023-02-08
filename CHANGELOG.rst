@@ -1,230 +1,217 @@
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package op_ros_helpers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package image_transport
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-1.11.0 (2019-03-21)
+1.12.0 (2020-04-03)
 -------------------
-* Fix license notice in corresponding package.xml
-* Contributors: amc-nu
+* Noetic release image_common (`#155 <https://github.com/ros-perception/image_common/issues/155>`_)
+* Contributors: Alejandro Hernández Cordero
 
-1.10.0 (2019-01-17)
+1.11.14 (2020-04-03)
+--------------------
+* export runtime binaries correctly on Windows (`#116 <https://github.com/ros-perception/image_common/issues/116>`_)
+* add DLL import/export macro (`#118 <https://github.com/ros-perception/image_common/issues/118>`_)
+* Contributors: James Xu
+
+1.11.13 (2017-11-05)
+--------------------
+* Disable image publisher plugins by name (`#60 <https://github.com/ros-perception/image_common/issues/60>`_)
+  * Disable publisher plugins by name
+  * Now have per publisher blacklist instead of image_transport wide.
+* update to use non deprecated pluginlib macro
+* Extend documentation of `getCameraInfoTopic`
+  Document the fact that the `base_topic` argument must be resolved in order to build the correct camera info topic.
+* Added cv::waitkey(10) for blank popup
+  Without the cv::waitkey(10), it results in a blank popup which crashes/ leads to a black popup. This change corrects that problem.
+  ROS Kinetic, Ubuntu 16.04.3
+* Contributors: Aaditya Saraiya, Lucas Walter, Mikael Arguedas, Thibaud Chupin, Vincent Rabaud
+
+1.11.12 (2017-01-29)
+--------------------
+* Fix CMake of image_transport/tutorial and polled_camera
+  Fix loads of problems with the CMakeLists.
+* image_transport/tutorial: Add dependency on generated msg
+  Without this, build fails on Kinetic because ResizedImage.h has not been
+  generated yet.
+* image_transport/tutorial: Add missing catkin_INCLUDE_DIRS
+  Without this, compilation files on Kinetic because ros.h cannot be found.
+* 1.11.11
+* update changelogs
+* Contributors: Martin Guenther, Vincent Rabaud
+
+1.11.11 (2016-09-24)
+--------------------
+
+1.11.10 (2016-01-19)
+--------------------
+
+1.11.9 (2016-01-17)
 -------------------
-* Fixes for catkin_make
-* Use colcon as the build tool (`#1704 <https://github.com/CPFL/Autoware/issues/1704>`_)
-  * Switch to colcon as the build tool instead of catkin
-  * Added cmake-target
-  * Added note about the second colcon call
-  * Added warning about catkin* scripts being deprecated
-  * Fix COLCON_OPTS
-  * Added install targets
-  * Update Docker image tags
-  * Message packages fixes
-  * Fix missing dependency
-* Fix Ros/ROS naming convention
-* Contributors: Esteve Fernandez, amc-nu
+* fix linkage in tutorials
+* Use $catkin_EXPORTED_TARGETS
+* Contributors: Jochen Sprickerhof, Vincent Rabaud
 
-1.9.1 (2018-11-06)
+1.11.8 (2015-11-29)
+-------------------
+
+1.11.7 (2015-07-28)
+-------------------
+
+1.11.6 (2015-07-16)
+-------------------
+
+1.11.5 (2015-05-14)
+-------------------
+* image_transport: fix CameraSubscriber shutdown (circular shared_ptr ref)
+  CameraSubscriber uses a private boost::shared_ptr to share an impl object
+  between copied instances. In CameraSubscriber::CameraSubscriber(), it
+  handed this shared_ptr to boost::bind() and saved the created wall timer
+  in the impl object, thus creating a circular reference. The impl object
+  was therefore never freed.
+  Fix that by passing a plain pointer to boost::bind().
+* avoid a memory copy for the raw publisher
+* add a way to publish an image with only the data pointer
+* Make function inline to avoid duplicated names when linking statically
+* add plugin examples for the tutorial
+* update instructions for catkin
+* remove uselessly linked library
+  fixes `#28 <https://github.com/ros-perception/image_common/issues/28>`_
+* add a tutorial for image_transport
+* Contributors: Gary Servin, Max Schwarz, Vincent Rabaud
+
+1.11.4 (2014-09-21)
+-------------------
+
+1.11.3 (2014-05-19)
+-------------------
+
+1.11.2 (2014-02-13)
+-------------------
+
+1.11.1 (2014-01-26 02:33)
+-------------------------
+
+1.11.0 (2013-07-20 12:23)
+-------------------------
+
+1.10.5 (2014-01-26 02:34)
+-------------------------
+
+1.10.4 (2013-07-20 11:42)
+-------------------------
+* add Jack as maintainer
+* update my email address
+* Contributors: Vincent Rabaud
+
+1.10.3 (2013-02-21 05:33)
+-------------------------
+
+1.10.2 (2013-02-21 04:48)
+-------------------------
+
+1.10.1 (2013-02-21 04:16)
+-------------------------
+
+1.10.0 (2013-01-13)
+-------------------
+* fix the urls
+* use the pluginlib script to remove some warnings
+* added license headers to various cpp and h files
+* Contributors: Aaron Blasdel, Vincent Rabaud
+
+1.9.22 (2012-12-16)
+-------------------
+* get rid of the deprecated class_loader interface
+* Contributors: Vincent Rabaud
+
+1.9.21 (2012-12-14)
+-------------------
+* CMakeLists.txt clean up
+* Updated package.xml file(s) to handle new catkin buildtool_depend
+  requirement
+* Contributors: William Woodall, mirzashah
+
+1.9.20 (2012-12-04)
+-------------------
+
+1.9.19 (2012-11-08)
+-------------------
+* add the right link libraries
+* Contributors: Vincent Rabaud
+
+1.9.18 (2012-11-06)
+-------------------
+* Isolated plugins into their own library to follow new
+  class_loader/pluginlib guidelines.
+* remove the brief attribute
+* Contributors: Mirza Shah, Vincent Rabaud
+
+1.9.17 (2012-10-30 19:32)
+-------------------------
+
+1.9.16 (2012-10-30 09:10)
+-------------------------
+* add xml file
+* Contributors: Vincent Rabaud
+
+1.9.15 (2012-10-13 08:43)
+-------------------------
+* fix bad folder/libraries
+* Contributors: Vincent Rabaud
+
+1.9.14 (2012-10-13 01:07)
+-------------------------
+
+1.9.13 (2012-10-06)
+-------------------
+
+1.9.12 (2012-10-04)
+-------------------
+
+1.9.11 (2012-10-02 02:56)
+-------------------------
+
+1.9.10 (2012-10-02 02:42)
+-------------------------
+
+1.9.9 (2012-10-01)
 ------------------
+* fix dependencies
+* Contributors: Vincent Rabaud
 
-1.9.0 (2018-10-31)
+1.9.8 (2012-09-30)
 ------------------
-* [fix] PascalCase messages (`#1408 <https://github.com/CPFL/Autoware/issues/1408>`_)
-  * Switch message files to pascal case
-  * Switch message names to pascal case in Runtime Manager
-  * Switch message names to pascal case in *.yaml
-  * Rename brake_cmd and steer_cmd to BrakeCmd and SteerCmd in main.yaml
-* Contributors: Esteve Fernandez
+* add catkin as a dependency
+* comply to the catkin API
+* Contributors: Vincent Rabaud
 
-1.8.0 (2018-08-31)
-------------------
-* [Fix] Moved C++11 flag to autoware_build_flags (`#1395 <https://github.com/CPFL/Autoware/pull/1395>`_)
-* [Feature] Makes sure that all binaries have their dependencies linked (`#1385 <https://github.com/CPFL/Autoware/pull/1385>`_)
-* Fix Vector Map parser problem, tested with three different maps
-  Fix Global Planning function for the new map modification
-  Add OpenPlanner Simulator for perception, traffic lights, cars
-  Add OpenPlanner new version to replace wp_planner and dp_planner
-  Remove unnecessary files from OpenPlanner libraries
-  Test Global and Local planning
-  Test Tracking node (kf_contour_track)
-  Test Simulation Nodes
-  Test Utility Nodes
-* Update op_utility files for csv files loading
-  Update MappingHelpers with latest modifications
-  Update PlanningHelpers with latest modifications
-  add op_common_param node, for setting OpenPlanner parameter for all related nodes such as lidar_kf_contour_track
-  Improve tracking by including size different in association function
-  Update way_planner, dp_planner for compatibility with new Mapping Modifications, Map format is backward compatible
-* Update OpenPlanner libraries (op_planner, op_utitity, op_ros_helpers)
-  Update ring ground filter with latest implementation
-  Update lidar_kf_contour_track with latest implementation
-  Add op_utilities nodes (op_bag_player, op_data_logger, op_pose2tf)
-  Modify autoware_msgs for OpenPlanner use (CloudCluster, DetectedObject, lane, waypoint)
-  Update UI computing.yaml for the new nodes and modifies parameters
-  Update UI sensing.yaml for updated ring_ground_filter params
-* Contributors: Esteve Fernandez, hatem-darweesh
-
-1.7.0 (2018-05-18)
-------------------
-* update Version from 1.6.3 to 1.7.0 in package.xml and CHANGELOG.rst
-* [fix] Fixes for all packages and dependencies (`#1240 <https://github.com/CPFL/Autoware/pull/1240>`_)
-  * Initial Cleanup
-  * fixed also for indigo
-  * kf cjeck
-  * Fix road wizard
-  * Added travis ci
-  * Trigger CI
-  * Fixes to cv_tracker and lidar_tracker cmake
-  * Fix kitti player dependencies
-  * Removed unnecessary dependencies
-  * messages fixing for can
-  * Update build script travis
-  * Travis Path
-  * Travis Paths fix
-  * Travis test
-  * Eigen checks
-  * removed unnecessary dependencies
-  * Eigen Detection
-  * Job number reduced
-  * Eigen3 more fixes
-  * More Eigen3
-  * Even more Eigen
-  * find package cmake modules included
-  * More fixes to cmake modules
-  * Removed non ros dependency
-  * Enable industrial_ci for indidog and kinetic
-  * Wrong install command
-  * fix rviz_plugin install
-  * FastVirtualScan fix
-  * Fix Qt5 Fastvirtualscan
-  * Fixed qt5 system dependencies for rosdep
-  * NDT TKU Fix catkin not pacakged
-  * More in detail dependencies fixes for more packages
-  * GLEW library for ORB
-  * Ignore OrbLocalizer
-  * Ignore Version checker
-  * Fix for driveworks interface
-  * driveworks not catkinpackagedd
-  * Missing catkin for driveworks
-  * libdpm opencv not catkin packaged
-  * catkin lib gnss  not included in obj_db
-  * Points2Polygon fix
-  * More missing dependencies
-  * image viewer not packaged
-  * Fixed SSH2 detection, added viewers for all distros
-  * Fix gnss localizer incorrect dependency config
-  * Fixes to multiple packages dependencies
-  * gnss plib and package
-  * More fixes to gnss
-  * gnss dependencies for gnss_loclaizer
-  * Missing gnss dependency for gnss on localizer
-  * More fixes for dependencies
-  Replaced gnss for autoware_gnss_library
-  * gnss more fixes
-  * fixes to more dependencies
-  * header dependency
-  * Debug message
-  * more debug messages changed back to gnss
-  * debud messages
-  * gnss test
-  * gnss install command
-  * Several fixes for OpenPlanner and its lbiraries
-  * Fixes to ROSInterface
-  * More fixes to robotsdk and rosinterface
-  * robotsdk calibration fix
-  * Fixes to rosinterface robotsdk libraries and its nodes
-  * Fixes to Qt5 missing dependencies in robotsdk
-  * glviewer missing dependencies
-  * Missing qt specific config cmake for robotsdk
-  * disable cv_tracker
-  * Fix to open planner un needed dependendecies
-  * Fixes for libraries indecision maker
-  * Fixes to libraries decision_maker installation
-  * Gazebo on Kinetic
-  * Added Missing library
-  * * Removed Gazebo and synchonization packages
-  * Renames vmap in lane_planner
-  * Added installation commands for missing pakcages
-  * Fixes to lane_planner
-  * Added NDT TKU Glut extra dependencies
-  * ndt localizer/lib fast pcl fixes
-  re enable cv_tracker
-  * Fix kf_lib
-  * Keep industrial_ci
-  * Fixes for dpm library
-  * Fusion lib fixed
-  * dpm and fusion header should match exported project name
-  * Fixes to dpm_ocv  ndt_localizer and pcl_omp
-  * no fast_pcl anymore
-  * fixes to libdpm and its package
-  * CI test
-  * test with native travis ci
-  * missing update for apt
-  * Fixes to pcl_omp installation and headers
-  * Final fixes for tests, modified README
-  * * Fixes to README
-  * Enable industrial_ci
-  * re enable native travis tests
-* Contributors: Abraham Monrroy, Kosuke Murakami
-
-1.6.3 (2018-03-06)
-------------------
-
-1.6.2 (2018-02-27)
-------------------
-* Update CHANGELOG
-* Contributors: Yusuke FUJII
-
-1.6.1 (2018-01-20)
-------------------
-* update CHANGELOG
-* Contributors: Yusuke FUJII
-
-1.6.0 (2017-12-11)
-------------------
-* Prepare release for 1.6.0
-* - Add new Node for object polygon representation and tracking (kf_contour_tracker)
-  - Add launch file and tune tracking parameters
-  - Test with Moriyama rosbag
-* - Update OpenPlanner libraries (plannerh, simuh, utilityh) with the latest modifications
-  - Fix inconsistency after library update, make sure old (way_planner, dp_planner) are working fine
-  - Create new package (op_local_planner)
-  - Create common launch file for local planning params
-  - Create new node (op_trajectory_generator)
-  - Create launch file for trajectory generation only
-  - Test generating trajectories (rollouts) in simulation with way_planner
-  - Test generating trajectories with real rosbag data with way_planner
-  - Test generating trajectories with real rosbag data and waypoints_loader
-* Contributors: Yamato ANDO, hatem-darweesh
-
-1.5.1 (2017-09-25)
-------------------
-
-1.5.0 (2017-09-21)
-------------------
-
-1.4.0 (2017-08-04)
-------------------
-
-1.3.1 (2017-07-16)
-------------------
-
-1.3.0 (2017-07-14)
-------------------
-
-1.2.0 (2017-06-07)
-------------------
-
-1.1.2 (2017-02-27 23:10)
+1.9.7 (2012-09-18 11:39)
 ------------------------
 
-1.1.1 (2017-02-27 22:25)
+1.9.6 (2012-09-18 11:07)
 ------------------------
 
-1.1.0 (2017-02-24)
+1.9.5 (2012-09-13)
+------------------
+* install the include directories
+* Contributors: Vincent Rabaud
+
+1.9.4 (2012-09-12 23:37)
+------------------------
+
+1.9.3 (2012-09-12 20:44)
+------------------------
+
+1.9.2 (2012-09-10)
 ------------------
 
-1.0.1 (2017-01-14)
-------------------
+1.9.1 (2012-09-07 15:33)
+------------------------
+* make the libraries public
+* Contributors: Vincent Rabaud
 
-1.0.0 (2016-12-22)
-------------------
+1.9.0 (2012-09-07 13:03)
+------------------------
+* catkinize for Groovy
+* Initial image_common stack check-in, containing image_transport.
+* Contributors: Vincent Rabaud, gerkey, kwc, mihelich, pmihelich, straszheim, vrabaud
