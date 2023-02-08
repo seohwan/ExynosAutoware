@@ -1,4 +1,0 @@
-uint64 instance
-autoware_msgs/LaneArray lane_array
-geometry_msgs/PoseStamped pose
-geometry_msgs/TwistStamped twist
