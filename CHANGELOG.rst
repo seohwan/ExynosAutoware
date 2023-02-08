@@ -1,14 +1,31 @@
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package points_preprocessor
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package points_downsampler
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 1.11.0 (2019-03-21)
 -------------------
-* Revert "Fix/health checker (`#2012 <https://github.com/CPFL/Autoware/issues/2012>`_)" (`#2037 <https://github.com/CPFL/Autoware/issues/2037>`_)
-  This reverts commit e4187a7138eb90ad6f119eb35f824b16465aefda.
-  Reverts `#2012 <https://github.com/CPFL/Autoware/issues/2012>`_
-  Merged without adequate description of the bug or fixes made
-* Fix/health checker (`#2012 <https://github.com/CPFL/Autoware/issues/2012>`_)
+* Feature/update autoware launcher (`#2056 <https://github.com/CPFL/Autoware/issues/2056>`_)
+  * Add prototype of plugin file editor
+  * Change logger level
+  * Support command line options
+  * Update gazebo simulator panel
+  * Add plugin edit tool and update plugins
+  * Fix a bug of transform edit
+  * Fix setup.py to install all packages
+  * Update the code for compatibility with python3
+  * Update the code for colcon build
+  * updated plugin for lane_rule, lane_stop, and voxel_grid_filter
+  * Fix that the plugin_description is not installed
+  * Fix launch file error
+  * Fix test failed
+  * Skip test of unbuilt packages
+  * Add run script
+  * Add profile description
+  * Fix launch file install path of point_downsampler
+  * Update README file
+  * Update README file for plugin file
+  * Fix README file
+  * Add notice to run script
 * [fix] Install commands for all the packages (`#1861 <https://github.com/CPFL/Autoware/issues/1861>`_)
   * Initial fixes to detection, sensing, semantics and utils
   * fixing wrong filename on install command
@@ -40,9 +57,8 @@ Changelog for package points_preprocessor
   * Fixed params installation path
   * Fixed cfg installation path
   * Delete cache on colcon_release
-* Feature/autoware health checker (`#1943 <https://github.com/CPFL/Autoware/issues/1943>`_)
 * Fix license notice in corresponding package.xml
-* Contributors: Abraham Monrroy Cano, Geoffrey Biggs, Masaya Kataoka, amc-nu
+* Contributors: Abraham Monrroy Cano, amc-nu, isamu-takagi
 
 1.10.0 (2019-01-17)
 -------------------
@@ -72,48 +88,14 @@ Changelog for package points_preprocessor
 1.9.0 (2018-10-31)
 ------------------
 * Moved configuration messages to autoware_config_msgs
-* renamed topics to match, sensing workflow (`#1600 <https://github.com/CPFL/Autoware/issues/1600>`_)
-  [fix] renamed topics to match, sensing workflow on CompareMapFilter
-* Feature/compare map filter (`#1559 <https://github.com/CPFL/Autoware/issues/1559>`_)
-  * add compare map filter
-  * add README
-  * add copyright
-  * change default parameter
-  * fix typo
-  * clang-format
-  * Revert "clang-format"
-  This reverts commit 95869328f35f6ed1e918c26901ad36ab9737e466.
-  * retry clang-format
-* Contributors: Abraham Monrroy, Esteve Fernandez, YamatoAndo
+* Contributors: Esteve Fernandez
 
 1.8.0 (2018-08-31)
 ------------------
-* Fix Indigo build issues
 * [Fix] Moved C++11 flag to autoware_build_flags (`#1395 <https://github.com/CPFL/Autoware/pull/1395>`_)
 * [Feature] Makes sure that all binaries have their dependencies linked (`#1385 <https://github.com/CPFL/Autoware/pull/1385>`_)
-* Update OpenPlanner libraries (op_planner, op_utitity, op_ros_helpers)
-  Update ring ground filter with latest implementation
-  Update lidar_kf_contour_track with latest implementation
-  Add op_utilities nodes (op_bag_player, op_data_logger, op_pose2tf)
-  Modify autoware_msgs for OpenPlanner use (CloudCluster, DetectedObject, lane, waypoint)
-  Update UI computing.yaml for the new nodes and modifies parameters
-  Update UI sensing.yaml for updated ring_ground_filter params
-* Replaced yaml-cpp library flag
-* Fix finding yaml-cpp by pkg_check_modules
-* Add -lyaml-cpp
-* Remove yaml-cpp find package
 * [Fix] Extend and Update interface.yaml (`#1291 <https://github.com/CPFL/Autoware/pull/1291>`_)
-* Fix cmake and remove msg from runtime manager
-* Fix assertion condition
-* fix review comments
-  - fix CMakeFiles.txt and package.xml related yaml-cpp
-  - use input_topics_size\_
-  - add brackets
-* apply clang-format
-* Modify runtime_manager
-* apply clang-format
-* Modify points_concat_filter to support up to 8 lidars
-* Contributors: Akihito Ohsato, Esteve Fernandez, Kenji Funaoka, Yusuke FUJII, hatem-darweesh
+* Contributors: Esteve Fernandez, Kenji Funaoka
 
 1.7.0 (2018-05-18)
 ------------------
@@ -216,41 +198,7 @@ Changelog for package points_preprocessor
   * * Fixes to README
   * Enable industrial_ci
   * re enable native travis tests
-* Fix/cmake cleanup (`#1156 <https://github.com/CPFL/Autoware/pull/1156>`_)
-  * Initial Cleanup
-  * fixed also for indigo
-  * kf cjeck
-  * Fix road wizard
-  * Added travis ci
-  * Trigger CI
-  * Fixes to cv_tracker and lidar_tracker cmake
-  * Fix kitti player dependencies
-  * Removed unnecessary dependencies
-  * messages fixing for can
-  * Update build script travis
-  * Travis Path
-  * Travis Paths fix
-  * Travis test
-  * Eigen checks
-  * removed unnecessary dependencies
-  * Eigen Detection
-  * Job number reduced
-  * Eigen3 more fixes
-  * More Eigen3
-  * Even more Eigen
-  * find package cmake modules included
-  * More fixes to cmake modules
-  * Removed non ros dependency
-  * Enable industrial_ci for indidog and kinetic
-  * Wrong install command
-  * fix rviz_plugin install
-  * FastVirtualScan fix
-  * Fix Qt5 Fastvirtualscan
-  * Fixed qt5 system dependencies for rosdep
-  * NDT TKU Fix catkin not pacakged
-  * Fixes from industrial_ci
-* Editorial changes to README files. See `#1124 <https://github.com/CPFL/Autoware/pull/1124>`_. (`#1125 <https://github.com/CPFL/Autoware/pull/1125>`_)
-* Contributors: Abraham Monrroy, David, Kosuke Murakami
+* Contributors: Abraham Monrroy, Kosuke Murakami
 
 1.6.3 (2018-03-06)
 ------------------
@@ -267,36 +215,6 @@ Changelog for package points_preprocessor
 
 1.6.0 (2017-12-11)
 ------------------
-* Prepare release for 1.6.0
-* decoupled ray ground filter into lib and exe, added unit test (`#932 <https://github.com/cpfl/autoware/issues/932>`_)
-* - Add new Node for object polygon representation and tracking (kf_contour_tracker)
-  - Add launch file and tune tracking parameters
-  - Test with Moriyama rosbag
-* Feature/ring_ground_filter parameter description (`#884 <https://github.com/cpfl/autoware/issues/884>`_)
-  * Added a README file for ground_filter tuning
-  * Moved and formatted Patipon instructions on ring_ground_filter
-* Feature/fusion_filter - fusion multiple lidar (`#842 <https://github.com/cpfl/autoware/issues/842>`_)
-  * Add fusion_filter to merge multiple lidar pointclouds
-  * Refactor fusion_filter
-  * Apply clang-format and rebase develop
-  * Add fusion_filter launch and runtime_manager config
-  * Fix names, fusion_filter -> points_concat_filter
-  * Fix build error in ros-indigo
-  * Fix some default message/frame names
-  * Refactor code and apply clang-format
-  * Add configrations for runtime_manager
-  * Fix CMake
-* Feature/cloud transformer (`#860 <https://github.com/cpfl/autoware/issues/860>`_)
-  * Added Cloud transformer node
-  transforms pointcloud to a target frame
-  * Added support for XYZIR point type
-  * Added error checks when transformation unavailable
-* Solved conflicts by ring filter config message naming change
-* Add ground_filter config for runtime_manager (`#828 <https://github.com/cpfl/autoware/issues/828>`_)
-* Added Compilation fix for Kinect
-* Added descriptions to the params in launch file
-* Ray Ground Filter Initial Commit
-* Contributors: AMC, Abraham Monrroy, Akihito Ohsato, Yamato ANDO, christopherho-ApexAI, hatem-darweesh
 
 1.5.1 (2017-09-25)
 ------------------
@@ -310,40 +228,37 @@ Changelog for package points_preprocessor
 1.5.0 (2017-09-21)
 ------------------
 * Update changelog
-* [hotfix] fixes to lidar_tracker package(`#787 <https://github.com/cpfl/autoware/issues/787>`_)
-  -Fixed a typo in the ground_filter launch file from points_preprocessor
-  -Fixed ID duplication in kf_lidar_tracker
-  Tested on Ubuntu 14.04 and 16.04
-* Contributors: Abraham Monrroy, Yusuke FUJII
+* Contributors: Yusuke FUJII
 
 1.4.0 (2017-08-04)
 ------------------
-* link to documentation
 * version number must equal current release number so we can start releasing in the future
 * added changelogs
-* Update ground_filter.launch
-* Update ground_filter.launch
-  Added params to launch file
-* Typo Fix
-* Fixed a bug that caused missing points
-* Fixed linking error on 16.04
-* Modified as suggested by @dejanpan on `#655 <https://github.com/cpfl/autoware/issues/655>`_
-* -Standarized code
-  -Added support for the 3 Velodyne Sensors models (use model_sensor {16,32,64})
-  -Parametrized
-* Test adding interface
-* Try to add interface
-* New version of ground_filter
-* Contributors: AMC, Abraham Monrroy, Dejan Pangercic, Patiphon Narksri
+* Contributors: Dejan Pangercic
 
 1.3.1 (2017-07-16)
 ------------------
 
 1.3.0 (2017-07-14)
 ------------------
+* Modify measurement_range=MAX_MEASUREMENT_RANGE; (200)
+* Add Error handring to removePointsByRange()
+* fix initializing measurement_range
+  https://github.com/CPFL/Autoware/issues/693
+* https://github.com/CPFL/Autoware/issues/693
+* make the commit 14f7eca unavailable.
+* Localization problem patch
+  https://github.com/CPFL/Autoware/issues/693
+* convert to autoware_msgs
+* Contributors: YamatoAndo, andoh104
 
 1.2.0 (2017-06-07)
 ------------------
+* not call removePointsByRange() when measurement_range is 200
+  not compute sqrt
+* add measurement_range
+  refactoring
+* Contributors: yukikitsukawa
 
 1.1.2 (2017-02-27 23:10)
 ------------------------
@@ -353,12 +268,16 @@ Changelog for package points_preprocessor
 
 1.1.0 (2017-02-24)
 ------------------
+* add tf_mapping
+  select points_topic in points_downsample.launch
+* Contributors: yukikitsukawa
 
 1.0.1 (2017-01-14)
 ------------------
 
 1.0.0 (2016-12-22)
 ------------------
+* Rename variables.
 * Rename package name.
   data_filter -> filters
   points_filter -> points_downsample
