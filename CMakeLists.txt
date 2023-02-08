@@ -1,24 +1,23 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(ros_observer)
+project(rubis_lib)
 
-add_compile_options(-std=c++11)
 
-find_package(
-  catkin REQUIRED COMPONENTS
-  roscpp
-  roslint
+
+find_package(PCL REQUIRED)
+
+if(NOT (PCL_VERSION VERSION_LESS "1.7.2"))
+  SET(PCL_OPENMP_PACKAGES pcl_omp_registration)
+endif()
+
+find_package(catkin REQUIRED COMPONENTS
+  cmake_modules
+  sensor_msgs
+  rubis_msgs
 )
-
-find_package(Boost REQUIRED COMPONENTS
-  thread
-)
-
-set(ROSLINT_CPP_OPTS "--filter=-build/c++11")
-roslint_cpp()
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES lib_ros_observer
+  LIBRARIES rubis_lib
 )
 
 include_directories(
@@ -26,51 +25,31 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(
-  ros_observer
-  src/ros_observer.cpp
+add_library(rubis_lib SHARED
+  src/sched_c.c
+  src/sched_profiling_c.c
+  src/sched.cpp
+  src/sched_profiling.cpp
 )
 
-target_link_libraries(
-  ros_observer
-  rt ${Boost_LIBRARIES}
-)
-
-add_dependencies(
-  ros_observer
-  ${catkin_EXPORTED_TARGETS}
-)
-
-add_library(
-  lib_ros_observer
-  lib/lib_ros_observer.cpp
-)
-
-target_link_libraries(
-  lib_ros_observer
+target_link_libraries(rubis_lib
   ${catkin_LIBRARIES}
-  rt
-  ${Boost_LIBRARIES}
 )
 
-add_dependencies(
-  lib_ros_observer
-  ${catkin_EXPORTED_TARGETS}
+target_include_directories(rubis_lib PRIVATE
+  ${catkin_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
 
-# include header files
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
-
-# Install library
-install(TARGETS ros_observer lib_ros_observer
+install(TARGETS rubis_lib
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-# Install launch
-install(DIRECTORY launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING
+  PATTERN "*.hpp"
+  PATTERN "*.h"
 )
