@@ -68,11 +68,13 @@ def main():
         else:
             update_branch(branch_name, package_path)
             remote_branches.remove('origin/'+branch_name)
-    
+    print(remote_branches)
     # Delete unexist branches    
     for branch in remote_branches:
+        
         branch_name = branch.split('/')[1]
-        delete_branch(branch_name)
+        print(branch, branch_name)
+        # delete_branch(branch_name)
         
     terminate()
     
