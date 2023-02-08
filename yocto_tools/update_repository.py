@@ -45,6 +45,7 @@ def main():
                 if 'origin/' + branch_name not in remote_branches: # Branch is not exist
                     create_branch(branch_name, package_path)
                 else:
+                    print('##')
                     update_branch(branch_name, package_path)
                 
                 if 'origin/'+branch_name in remote_branches:
@@ -68,6 +69,7 @@ def main():
         if 'origin/' + branch_name not in remote_branches: # Branch is not exist
             create_branch(branch_name, package_path)
         else:
+            print('##')
             update_branch(branch_name, package_path)
         
         if 'origin/'+branch_name in remote_branches:
