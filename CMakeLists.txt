@@ -1,104 +1,76 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(vector_map_server)
+project(ros_observer)
 
+add_compile_options(-std=c++11)
 
-
-find_package(catkin REQUIRED COMPONENTS
-  autoware_msgs
-  geometry_msgs
-  message_generation
+find_package(
+  catkin REQUIRED COMPONENTS
   roscpp
   roslint
-  vector_map
-  vector_map_msgs
-  visualization_msgs
 )
 
-set(CMAKE_CXX_FLAGS "-O2 -Wall ${CMAKE_CXX_FLAGS}")
-
-add_service_files(
-  FILES
-  GetCrossRoad.srv
-  GetCrossWalk.srv
-  GetCurb.srv
-  GetCurveMirror.srv
-  GetDTLane.srv
-  GetDriveOnPortion.srv
-  GetFence.srv
-  GetGuardRail.srv
-  GetGutter.srv
-  GetLane.srv
-  GetNode.srv
-  GetRailCrossing.srv
-  GetRoadEdge.srv
-  GetRoadMark.srv
-  GetRoadPole.srv
-  GetRoadSign.srv
-  GetSideStrip.srv
-  GetSideWalk.srv
-  GetSignal.srv
-  GetStopLine.srv
-  GetStreetLight.srv
-  GetUtilityPole.srv
-  GetWall.srv
-  GetWayArea.srv
-  GetWhiteLine.srv
-  GetZebraZone.srv
-  PositionState.srv
+find_package(Boost REQUIRED COMPONENTS
+  thread
 )
 
-generate_messages(
-  DEPENDENCIES
-    autoware_msgs
-    geometry_msgs
-    vector_map_msgs
-)
+set(ROSLINT_CPP_OPTS "--filter=-build/c++11")
+roslint_cpp()
 
 catkin_package(
-  CATKIN_DEPENDS 
-    message_runtime 
-    geometry_msgs 
-    autoware_msgs 
-    vector_map_msgs 
-    vector_map 
-    visualization_msgs
+  INCLUDE_DIRS include
+  LIBRARIES lib_ros_observer
 )
 
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(${PROJECT_NAME} 
-  nodes/vector_map_server/vector_map_server.cpp
+add_executable(
+  ros_observer
+  src/ros_observer.cpp
 )
 
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES} 
+target_link_libraries(
+  ros_observer
+  rt ${Boost_LIBRARIES}
 )
 
-add_dependencies(${PROJECT_NAME}
-  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+add_dependencies(
+  ros_observer
   ${catkin_EXPORTED_TARGETS}
 )
 
-add_executable(vector_map_client
-  nodes/vector_map_client/vector_map_client.cpp
+add_library(
+  lib_ros_observer
+  lib/lib_ros_observer.cpp
 )
 
-target_link_libraries(vector_map_client
+target_link_libraries(
+  lib_ros_observer
   ${catkin_LIBRARIES}
+  rt
+  ${Boost_LIBRARIES}
 )
 
-add_dependencies(vector_map_client
-  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+add_dependencies(
+  lib_ros_observer
   ${catkin_EXPORTED_TARGETS}
 )
 
-set(ROSLINT_CPP_OPTS "--filter=-build/c++14,-runtime/references,-whitespace/braces")
-roslint_cpp()
+# include header files
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
 
-install(TARGETS ${PROJECT_NAME} vector_map_client
+# Install library
+install(TARGETS ros_observer lib_ros_observer
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+# Install launch
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
