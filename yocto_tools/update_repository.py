@@ -39,7 +39,7 @@ def main():
             for i in pb:
                 package = packages[i]
                 package_path = os.path.join(package_group_path, package)
-                branch_name = 'origin/'+package
+                branch_name = package
                 pb.set_description(branch_name)
                 
                 if branch_name not in branches: # Branch is not exist
@@ -60,7 +60,7 @@ def main():
     for i in pb:
         package = packages[i]
         package_path = os.path.join(rubis_ws_path, package)
-        branch_name = 'origin/'+rubis_ws_branches[i]        
+        branch_name = rubis_ws_branches[i]        
         pb.set_description(branch_name)
         
         if branch_name not in branches: # Branch is not exist
