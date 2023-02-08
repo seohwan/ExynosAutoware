@@ -42,7 +42,7 @@ def main():
                 branch_name = package
                 pb.set_description(branch_name)
                 
-                if branch_name not in remote_branches: # Branch is not exist
+                if 'origin/' + branch_name not in remote_branches: # Branch is not exist
                     create_branch(branch_name, package_path)
                 else:
                     update_branch(branch_name, package_path)
@@ -65,7 +65,7 @@ def main():
         branch_name = rubis_ws_branches[i]        
         pb.set_description(branch_name)
         
-        if branch_name not in remote_branches: # Branch is not exist
+        if 'origin/' + branch_name not in remote_branches: # Branch is not exist
             create_branch(branch_name, package_path)
         else:
             update_branch(branch_name, package_path)
