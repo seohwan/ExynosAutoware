@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(ins_twist_generator)
+project(controller)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -13,28 +13,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  std_msgs
-  inertiallabs_msgs
-  geometry_msgs
-  can_data_msgs
-  rubis_msgs
-  message_filters
-  tf
-)
-
-find_package(OpenCV REQUIRED)
-
-find_package(Eigen3 REQUIRED)
-set(EIGEN_PACKAGE EIGEN3)
-if(NOT EIGEN3_FOUND)
-  find_package(cmake_modules REQUIRED)
-  find_package(Eigen REQUIRED)
-  set(EIGEN3_INCLUDE_DIRS ${EIGEN_INCLUDE_DIRS})
-  set(EIGEN3_LIBRARIES ${EIGEN_LIBRARIES})
-  set(EIGEN_PACKAGE Eigen)
-endif()
+find_package(catkin REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -61,7 +40,14 @@ endif()
 ##     * add a exec_depend tag for "message_runtime"
 ## * In this file (CMakeLists.txt):
 ##   * add "message_generation" and every package in MSG_DEP_SET to
-##     find_package(catkin REQUIRED COMPONENTS ...)
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  autoware_msgs
+  geometry_msgs
+  can_data_msgs
+  std_msgs
+  nav_msgs
+)
 ##   * add "message_runtime" and every package in MSG_DEP_SET to
 ##     catkin_package(CATKIN_DEPENDS ...)
 ##   * uncomment the add_*_files sections below as needed
@@ -93,7 +79,7 @@ endif()
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   std_msgs
+#   std_msgs  # Or other packages containing msgs
 # )
 
 ################################################
@@ -127,8 +113,8 @@ endif()
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES gnss_converter
-#  CATKIN_DEPENDS roscpp std_msgs
+#  LIBRARIES controller
+#  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
 
@@ -139,15 +125,14 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-  EIGEN3_INCLUDE_DIRS
-  ${OpenCV_INCLUDE_DIRS}
+  include ${catkin_INCLUDE_DIRS}
+# include
+# ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/gnss_converter.cpp
+#   src/${PROJECT_NAME}/controller.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -158,7 +143,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/gnss_converter_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/controller_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -222,7 +207,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_gnss_converter.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_controller.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
@@ -230,19 +215,12 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(ins_twist_generator
-  src/ins_twist_generator.cpp
+
+add_executable(controller
+  include/controller/controller.h
+  src/controller.cpp
 )
-add_dependencies(ins_twist_generator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(ins_twist_generator
+add_dependencies(controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(controller
   ${catkin_LIBRARIES}
 )
-
-add_executable(dynamic_ins_twist_generator
-  src/dynamic_ins_twist_generator.cpp
-)
-add_dependencies(dynamic_ins_twist_generator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(dynamic_ins_twist_generator
-  ${catkin_LIBRARIES}
-)
-
