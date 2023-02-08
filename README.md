@@ -1,47 +1,48 @@
-# OpenPlanner - Global Planner 
+# OpenPlanner - Local Planner
 
-## op_global_planner 
+previously known as dp_planner, now it is a collection of node with each task of local planning is separated.
+for more details about OpenPlanner check our paper [Open Source Integrated Planner for Autonomous Navigation in Highly Dynamic Environments](https://www.fujipress.jp/jrm/rb/robot002900040668/)
 
-This node generate global path from start point to target point(s) on a map. Planning cost is distance only. the algorithm could be extended to handle other costs such as turning right and left busy lanes in the dynamic map. it supports autoware vector map, and special designed .kml maps.
+to run the local planner user needs to run all nodes in "OpenPlanner - Local planning"
+for more details about how to run [check tutorial video](https://youtu.be/BS5nLtBsXPE)
+
+## op_common_params
+
+This node loads the common parameters for the local planner, these parameters are using by op_trajectory_generator, op_motion_predictor, op_trajectory_evaluator, op_behavior_selector and lidar_kf_contour_track. 
 
 ### Outputs
-Global path from start to goal, if multiple goals are set, replanning is automatic when the vehicle reaches the end one goal.
-
+Loads the common parameters for the local planning 
 
 ### Options
-Lane change is avilable (parralel lanes are detected automatically) 
-Start/Goal(s) are set from Rviz, and saved to .csv files, if rviz param is disables, start/goal(s) will be loaded from .csv file at.
+ * loads params included in the launch file. 
+ * Creates folders for logging and saving important data for all nodes of OpenPlanner 
+folder structure: 
 
-### Requirements
-
-1. vector map
+- /home/user/autoware_openplanner_logs
+  - /BehaviorsLogs
+  - /ControlLogs
+  - /GlobalPathLogs
+  - /PredictionResults
+  - /SimulatedCar1
+  - /SimulatedCar2
+  - /SimulatedCar3
+  - /SimulatedCar4
+  - /SimulatedCar5
+  - /SimulationData
+  - /TrackingLogs
+  - /TrajectoriesLogs
 
 ### How to launch
 
 * From a sourced terminal:
 
-`roslaunch op_global_planner op_global_planner.launch`
+`roslaunch op_local_planner op_common_params.launch `
 
 * From Runtime Manager:
 
-Computing Tab -> Mission Planning -> OpenPlanner - Global Planner  -> op_global_planner
+Computing Tab -> Motion Planning -> OpenPlanner - Local planning  -> op_common_params
 
-### Subscriptions/Publications
+### Parameters 
+ * [check paper](https://www.fujipress.jp/jrm/rb/robot002900040668/)
 
 
-```
-Publications: 
- * /lane_waypoints_array [autoware_msgs::LaneArray]
- * /global_waypoints_rviz [visualization_msgs::MarkerArray]
- * /op_destinations_rviz [visualization_msgs::MarkerArray]
- * /vector_map_center_lines_rviz [visualization_msgs::MarkerArray]
-
-Subscriptions: 
- * /initialpose [geometry_msgs::PoseWithCovarianceStamped]
- * /move_base_simple/goal [geometry_msgs::PoseStamped]
- * /current_pose [geometry_msgs::PoseStamped]
- * /current_velocity [geometry_msgs::TwistStamped]
- * /vector_map_info/* 
-```
-
-![Demo Movie](https://youtu.be/BS5nLtBsXPE)
