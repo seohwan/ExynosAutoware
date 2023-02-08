@@ -1,75 +1,102 @@
-cmake_minimum_required(VERSION 2.8.11)
-project(amathutils_lib) # autoware math utility
+cmake_minimum_required(VERSION 2.8.3)
+
+project(map_file)
 
 
-
-find_package(Eigen3 REQUIRED)
-
-if (NOT EIGEN3_FOUND)
-    # Fallback to cmake_modules
-    find_package(cmake_modules REQUIRED)
-    find_package(Eigen REQUIRED)
-    set(EIGEN3_INCLUDE_DIRS ${EIGEN_INCLUDE_DIRS})
-    set(EIGEN3_LIBRARIES ${EIGEN_LIBRARIES})  # Not strictly necessary as Eigen is head only
-    # Possibly map additional variables to the EIGEN3_ prefix.
-else ()
-    set(EIGEN3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
-endif ()
 
 find_package(catkin REQUIRED COMPONENTS
   autoware_msgs
+  geometry_msgs
+  pcl_ros
   roscpp
-  roslint
+  std_msgs
   tf
-  tf2
+  tf2_geometry_msgs
+  tf2_ros
+  vector_map
+  visualization_msgs
 )
+
+find_package(PCL REQUIRED COMPONENTS io)
+find_package(Boost REQUIRED COMPONENTS filesystem)
+
+# See: https://github.com/ros-perception/perception_pcl/blob/lunar-devel/pcl_ros/CMakeLists.txt#L10-L22
+if(NOT "${PCL_LIBRARIES}" STREQUAL "")
+  # FIXME: this causes duplicates and not found error in ubuntu:zesty
+  list(REMOVE_ITEM PCL_LIBRARIES "/usr/lib/libmpi.so")
+
+  # For debian: https://github.com/ros-perception/perception_pcl/issues/139
+  list(REMOVE_ITEM PCL_IO_LIBRARIES
+    "vtkGUISupportQt"
+    "vtkGUISupportQtOpenGL"
+    "vtkGUISupportQtSQL"
+    "vtkGUISupportQtWebkit"
+    "vtkViewsQt"
+    "vtkRenderingQt"
+  )
+endif()
+
+find_package(CURL REQUIRED)
 
 set(CMAKE_CXX_FLAGS "-O2 -Wall ${CMAKE_CXX_FLAGS}")
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES amathutils_lib
+  LIBRARIES get_file
   CATKIN_DEPENDS
     autoware_msgs
-    tf
-    tf2
+    geometry_msgs
+    std_msgs
+    tf2_geometry_msgs
+    visualization_msgs
+  DEPENDS Boost
 )
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
+  ${PCL_IO_INCLUDE_DIRS}
+  ${CURL_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIR}
 )
 
-add_library(amathutils_lib
-  src/Amathutils.cpp
-  src/kalman_filter.cpp
-  src/time_delay_kalman_filter.cpp
-  src/butterworth_filter.cpp
+add_library(get_file
+  lib/map_file/get_file.cpp
 )
-target_link_libraries(amathutils_lib
-  ${catkin_LIBRARIES}
-)
+target_link_libraries(get_file ${CURL_LIBRARIES})
 
-add_dependencies(amathutils_lib
+add_executable(points_map_loader nodes/points_map_loader/points_map_loader.cpp)
+target_link_libraries(points_map_loader ${catkin_LIBRARIES} get_file ${CURL_LIBRARIES} ${PCL_IO_LIBRARIES})
+add_dependencies(points_map_loader 
   ${catkin_EXPORTED_TARGETS}
 )
 
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.hpp"
-)
+add_executable(vector_map_loader nodes/vector_map_loader/vector_map_loader.cpp)
+target_link_libraries(vector_map_loader ${catkin_LIBRARIES} ${vector_map_LIBRARIES} get_file ${CURL_LIBRARIES})
+add_dependencies(vector_map_loader ${catkin_EXPORTED_TARGETS})
 
-install(TARGETS amathutils_lib
+add_executable(points_map_filter nodes/points_map_filter/points_map_filter_node.cpp nodes/points_map_filter/points_map_filter.cpp)
+target_link_libraries(points_map_filter ${catkin_LIBRARIES})
+add_dependencies(points_map_filter ${catkin_EXPORTED_TARGETS})
+
+## Install executables and/or libraries
+install(
+  TARGETS
+    get_file
+    points_map_loader
+    vector_map_loader
+    points_map_filter
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-file(GLOB_RECURSE ROSLINT_FILES
-  LIST_DIRECTORIES false
-  *.cpp *.h *.hpp
+## Install project namespaced headers
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 )
 
-list(APPEND ROSLINT_CPP_OPTS "--extensions=cc,h,hpp,cpp,cu,cuh" "--filter=-build/c++11,-runtime/references")
-roslint_cpp(${ROSLINT_FILES})
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+  PATTERN ".svn" EXCLUDE
+)
