@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Autoware Foundation. All rights reserved.
+ * Copyright 2017-2019 Autoware Foundation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,34 +12,19 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ ********************
+ * amc-nu (abrahammonrroy@yahoo.com)
  */
 
-#include <imm_ukf_pda/imm_ukf_pda.h>
-#include <rubis_lib/sched.hpp>
-#define SPIN_PROFILING
+#include <ros/ros.h>
+#include "points_preprocessor/ray_ground_filter/ray_ground_filter.h"
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "imm_ukf_pda_tracker");
-  ros::NodeHandle private_nh("~");
+  ros::init(argc, argv, "rubis_ray_ground_filter");
+  RayGroundFilter app;
 
-  // Scheduling Setup
-  int rate;
-  private_nh.param<int>("/imm_ukf_pda_track/rate", rate, 10);
-
-  ImmUkfPda app;
-  app.run();
-
-  ros::Rate r(rate);
-  while(ros::ok()){
-    rubis::start_task_profiling();
-
-    ros::spinOnce();
-
-    rubis::stop_task_profiling(rubis::instance_, 0);
-
-    r.sleep();
-  }
+  app.Run();
 
   return 0;
 }
