@@ -1,68 +1,104 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(libwaypoint_follower)
+project(vector_map_server)
+
+
 
 find_package(catkin REQUIRED COMPONENTS
-  amathutils_lib
   autoware_msgs
   geometry_msgs
+  message_generation
   roscpp
   roslint
-  rosunit
-  std_msgs
+  vector_map
+  vector_map_msgs
+  visualization_msgs
 )
 
-find_package(Eigen3 QUIET)
+set(CMAKE_CXX_FLAGS "-O2 -Wall ${CMAKE_CXX_FLAGS}")
 
-if (NOT EIGEN3_FOUND)
-  # Fallback to cmake_modules
-  find_package(cmake_modules REQUIRED)
-  find_package(Eigen REQUIRED)
-  set(EIGEN3_INCLUDE_DIRS ${EIGEN_INCLUDE_DIRS})
-  set(EIGEN3_LIBRARIES ${EIGEN_LIBRARIES})  # Not strictly necessary as Eigen is head only
-  # Possibly map additional variables to the EIGEN3_ prefix.
-else ()
-  set(EIGEN3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
-endif ()
+add_service_files(
+  FILES
+  GetCrossRoad.srv
+  GetCrossWalk.srv
+  GetCurb.srv
+  GetCurveMirror.srv
+  GetDTLane.srv
+  GetDriveOnPortion.srv
+  GetFence.srv
+  GetGuardRail.srv
+  GetGutter.srv
+  GetLane.srv
+  GetNode.srv
+  GetRailCrossing.srv
+  GetRoadEdge.srv
+  GetRoadMark.srv
+  GetRoadPole.srv
+  GetRoadSign.srv
+  GetSideStrip.srv
+  GetSideWalk.srv
+  GetSignal.srv
+  GetStopLine.srv
+  GetStreetLight.srv
+  GetUtilityPole.srv
+  GetWall.srv
+  GetWayArea.srv
+  GetWhiteLine.srv
+  GetZebraZone.srv
+  PositionState.srv
+)
 
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES libwaypoint_follower
-  CATKIN_DEPENDS
-    amathutils_lib
+generate_messages(
+  DEPENDENCIES
     autoware_msgs
     geometry_msgs
-    std_msgs
+    vector_map_msgs
 )
 
-SET(CMAKE_CXX_FLAGS "-O2 -g -Wall ${CMAKE_CXX_FLAGS}")
+catkin_package(
+  CATKIN_DEPENDS 
+    message_runtime 
+    geometry_msgs 
+    autoware_msgs 
+    vector_map_msgs 
+    vector_map 
+    visualization_msgs
+)
 
-include_directories(libwaypoint_follower
-  include
+include_directories(
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
 )
 
-add_library(libwaypoint_follower src/libwaypoint_follower.cpp
-  src/pure_pursuit.cpp)
-add_dependencies(libwaypoint_follower ${catkin_EXPORTED_TARGETS})
-target_link_libraries(libwaypoint_follower ${catkin_LIBRARIES})
+add_executable(${PROJECT_NAME} 
+  nodes/vector_map_server/vector_map_server.cpp
+)
 
-## Install executables and/or libraries
-install(TARGETS libwaypoint_follower
+target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES} 
+)
+
+add_dependencies(${PROJECT_NAME}
+  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+  ${catkin_EXPORTED_TARGETS}
+)
+
+add_executable(vector_map_client
+  nodes/vector_map_client/vector_map_client.cpp
+)
+
+target_link_libraries(vector_map_client
+  ${catkin_LIBRARIES}
+)
+
+add_dependencies(vector_map_client
+  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+  ${catkin_EXPORTED_TARGETS}
+)
+
+set(ROSLINT_CPP_OPTS "--filter=-build/c++14,-runtime/references,-whitespace/braces")
+roslint_cpp()
+
+install(TARGETS ${PROJECT_NAME} vector_map_client
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-
-## Install project namespaced headers
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
-
-file(GLOB_RECURSE ROSLINT_FILES
-  LIST_DIRECTORIES false
-  *.cpp *.h *.hpp
-)
-
-list(APPEND ROSLINT_CPP_OPTS "--extensions=cc,h,hpp,cpp,cu,cuh" "--filter=-build/c++11,-runtime/references")
-roslint_cpp(${ROSLINT_FILES})
