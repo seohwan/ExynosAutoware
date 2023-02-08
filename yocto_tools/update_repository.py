@@ -16,12 +16,12 @@ def init():
 def main():
     
     init()
-    branches = get_remote_branches()
+    remote_branches = get_remote_branches()
 
     # Update autoware.ai    
     autoware_path = '../autoware.ai/src'
     cateogries = get_dirs(autoware_path)
-    local_branches = str(subprocess.check_output('git branch', shell=True))
+    local_branches = str(subprocess.check_output('git branch', shell=True))    
 
     for category in cateogries:
         category_path = os.path.join(autoware_path, category)
@@ -42,11 +42,11 @@ def main():
                 branch_name = package
                 pb.set_description(branch_name)
                 
-                if branch_name not in branches: # Branch is not exist
+                if branch_name not in remote_branches: # Branch is not exist
                     create_branch(branch_name, package_path)
                 else:
                     update_branch(branch_name, package_path)
-                branches.remove(branch_name)
+                    remote_branches.remove('origin/'+branch_name)
     
     # Update rubis_ws
     rubis_ws_path = '../rubis_ws/src'
@@ -63,14 +63,14 @@ def main():
         branch_name = rubis_ws_branches[i]        
         pb.set_description(branch_name)
         
-        if branch_name not in branches: # Branch is not exist
+        if branch_name not in remote_branches: # Branch is not exist
             create_branch(branch_name, package_path)
         else:
             update_branch(branch_name, package_path)
-        branches.remove(branch_name)
+            remote_branches.remove('origin/'+branch_name)
     
     # Delete unexist branches    
-    for branch in branches:
+    for branch in remote_branches:
         branch_name = branch.split('/')[1]
         delete_branch(branch_name)
         
