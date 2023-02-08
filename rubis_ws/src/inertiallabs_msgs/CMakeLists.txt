@@ -23,3 +23,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
   CATKIN_DEPENDS geometry_msgs std_msgs actionlib_msgs message_runtime)
+
+#install(DIRECTORY include/inertiallabs_msgs/
+#  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#  PATTERN "*.h")
