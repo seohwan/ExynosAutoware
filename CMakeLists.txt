@@ -1,46 +1,59 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(twist_gate)
+project(op_global_planner)
 
 if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
   add_definitions(-D__aarch64__)
 endif()
 
 
+
 find_package(
   catkin REQUIRED COMPONENTS
-    autoware_config_msgs
-    autoware_msgs
+    autoware_can_msgs
     geometry_msgs
-    ros_observer
+    jsk_recognition_msgs
+    libwaypoint_follower
+    op_planner
+    op_ros_helpers
+    op_utility
+    pcl_conversions
+    pcl_ros
     roscpp
-    roslint
     std_msgs
-    tablet_socket_msgs
+    tf
+    vector_map_msgs
     rubis_lib
-    rubis_msgs
+    nav_msgs
 )
 
 catkin_package(
   INCLUDE_DIRS include
+  LIBRARIES op_global_planner
 )
-
-SET(CMAKE_CXX_FLAGS "-O2 -g -Wall ${CMAKE_CXX_FLAGS}")
-set(ROSLINT_CPP_OPTS "--filter=-build/c++11")
-
-roslint_cpp()
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(twist_gate src/twist_gate_node.cpp src/twist_gate.cpp)
-target_link_libraries(twist_gate ${catkin_LIBRARIES})
-add_dependencies(twist_gate ${catkin_EXPORTED_TARGETS})
+add_executable(
+  op_global_planner
+  nodes/op_global_planner.cpp
+  nodes/op_global_planner_core.cpp
+)
+
+target_link_libraries(op_global_planner ${catkin_LIBRARIES})
+
+add_dependencies(op_global_planner ${catkin_EXPORTED_TARGETS})
 
 install(
-  TARGETS twist_gate
+  TARGETS op_global_planner
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+        
+install(
+  DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
