@@ -23,30 +23,30 @@ def main():
     cateogries = get_dirs(autoware_path)
     local_branches = str(subprocess.check_output('git branch', shell=True))    
 
-    for category in cateogries:
-        category_path = os.path.join(autoware_path, category)
-        package_groups = get_dirs(category_path)
-        for package_group in package_groups:
-            package_group_path = os.path.join(category_path, package_group)
-            packages = get_dirs(package_group_path)
-            for pkg in packages:
-                if pkg not in local_branches: os.system('git checkout --force '+pkg)
-            os.system('git checkout master')
+    # for category in cateogries:
+    #     category_path = os.path.join(autoware_path, category)
+    #     package_groups = get_dirs(category_path)
+    #     for package_group in package_groups:
+    #         package_group_path = os.path.join(category_path, package_group)
+    #         packages = get_dirs(package_group_path)
+    #         for pkg in packages:
+    #             if pkg not in local_branches: os.system('git checkout --force '+pkg)
+    #         os.system('git checkout master')
 
-            print('Update packages in autoware.ai/src/'+category+'/'+package_group)
+    #         print('Update packages in autoware.ai/src/'+category+'/'+package_group)
             
-            pb = tqdm(range(len(packages))) # progress bar
-            for i in pb:
-                package = packages[i]
-                package_path = os.path.join(package_group_path, package)
-                branch_name = package
-                pb.set_description(branch_name)
+    #         pb = tqdm(range(len(packages))) # progress bar
+    #         for i in pb:
+    #             package = packages[i]
+    #             package_path = os.path.join(package_group_path, package)
+    #             branch_name = package
+    #             pb.set_description(branch_name)
                 
-                if branch_name not in remote_branches: # Branch is not exist
-                    create_branch(branch_name, package_path)
-                else:
-                    update_branch(branch_name, package_path)
-                    remote_branches.remove('origin/'+branch_name)
+    #             if branch_name not in remote_branches: # Branch is not exist
+    #                 create_branch(branch_name, package_path)
+    #             else:
+    #                 update_branch(branch_name, package_path)
+    #                 remote_branches.remove('origin/'+branch_name)
     
     # Update rubis_ws
     rubis_ws_path = '../rubis_ws/src'
@@ -63,11 +63,13 @@ def main():
         branch_name = rubis_ws_branches[i]        
         pb.set_description(branch_name)
         
-        if branch_name not in remote_branches: # Branch is not exist
-            create_branch(branch_name, package_path)
-        else:
-            update_branch(branch_name, package_path)
-            remote_branches.remove('origin/'+branch_name)
+        # if branch_name not in remote_branches: # Branch is not exist
+        #     create_branch(branch_name, package_path)
+        # else:
+        #     update_branch(branch_name, package_path)
+        #     remote_branches.remove('origin/'+branch_name)
+
+        print(branch_name)
     print(remote_branches)
     # Delete unexist branches    
     for branch in remote_branches:
