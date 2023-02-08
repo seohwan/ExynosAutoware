@@ -74,11 +74,10 @@ def main():
             remote_branches.remove('origin/'+branch_name)
 
     # Delete unexist branches    
-    for branch in remote_branches:
-        
+    for branch in remote_branches:        
         branch_name = branch.split('/')[1]
         delete_branch(branch_name)
-        
+    print('##')
     terminate()
     
     return
