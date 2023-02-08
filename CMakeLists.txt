@@ -1,19 +1,17 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(control_module)
+project(camera_image)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+# add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  tf
-  std_msgs
-  geometry_msgs
-  visualization_msgs  
-)
+find_package(catkin REQUIRED)
+
+# add by Park
+find_package(OpenCV REQUIRED)
+
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -34,13 +32,19 @@ find_package(catkin REQUIRED COMPONENTS
 ##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
 ## * In the file package.xml:
 ##   * add a build_depend tag for "message_generation"
-##   * add a build_depend and a exec_depend tag forg each package in MSG_DEP_SET
+##   * add a build_depend and a run_depend tag for each package in MSG_DEP_SET
 ##   * If MSG_DEP_SET isn't empty the following dependency has been pulled in
 ##     but can be declared for certainty nonetheless:
-##     * add a exec_depend tag for "message_runtime"
+##     * add a run_depend tag for "message_runtime"
 ## * In this file (CMakeLists.txt):
 ##   * add "message_generation" and every package in MSG_DEP_SET to
-##     find_package(catkin REQUIRED COMPONENTS ...)
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  message_generation
+  image_transport
+  cv_bridge
+  rubis_lib
+)
 ##   * add "message_runtime" and every package in MSG_DEP_SET to
 ##     catkin_package(CATKIN_DEPENDS ...)
 ##   * uncomment the add_*_files sections below as needed
@@ -51,7 +55,6 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 # add_message_files(
 #   FILES
-#   isFound.msg
 # )
 
 ## Generate services in the 'srv' folder
@@ -69,13 +72,9 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-# 	DEPENDENCIES
-# 	std_msgs  # Or other packages containing msgs
-# 	geometry_msgs
-#   visualization_msgs
-#   lane_following
-# )
+generate_messages(DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -84,7 +83,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## To declare and build dynamic reconfigure parameters within this
 ## package, follow these steps:
 ## * In the file package.xml:
-##   * add a build_depend and a exec_depend tag for "dynamic_reconfigure"
+##   * add a build_depend and a run_depend tag for "dynamic_reconfigure"
 ## * In this file (CMakeLists.txt):
 ##   * add "dynamic_reconfigure" to
 ##     find_package(catkin REQUIRED COMPONENTS ...)
@@ -107,9 +106,11 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
+  CATKIN_DEPENDS
+  message_runtime
 #  INCLUDE_DIRS include
-#  LIBRARIES contorl_module
-  CATKIN_DEPENDS roscpp tf geometry_msgs std_msgs visualization_msgs
+#  LIBRARIES camera_image
+#  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
 
@@ -120,14 +121,16 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
+  include ${catkin_INCLUDE_DIRS}
+  #add by Park
+  include ${OpenCV_INCLUDE_DIRS}
 # include
-  ${PROJECT_SOURCE_DIR}/include/control_module
-  ${catkin_INCLUDE_DIRS}
+# ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/contorl_module.cpp
+#   src/${PROJECT_NAME}/camera_image.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -138,7 +141,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-
+# add_executable(${PROJECT_NAME}_node src/camera_image_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -151,22 +154,9 @@ include_directories(
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-
-add_executable(twist_converter src/twist_converter.cpp)
-target_link_libraries(twist_converter
-   ${catkin_LIBRARIES}
-)
-
-
-add_executable(control_module
-	include/control_module/control_module.h
-        src/control_module/control_module_node.cpp
-	src/control_module/control_module.cpp)
-target_link_libraries(control_module
-   ${catkin_LIBRARIES}
-)
-# add_dependencies(control_module ${catkin_EXPORTED_TARGETS} ${${my_package}_EXPORTED_TARGETS})
-add_dependencies(control_module ${${my_package}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
+# target_link_libraries(${PROJECT_NAME}_node
+#   ${catkin_LIBRARIES}
+# )
 
 #############
 ## Install ##
@@ -208,10 +198,31 @@ add_dependencies(control_module ${${my_package}_EXPORTED_TARGETS} ${catkin_EXPOR
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_contorl_module.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_camera_image.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+
+add_executable(camera_image
+  src/camera_image.cpp
+)
+add_dependencies(camera_image ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(camera_image
+  ${catkin_LIBRARIES}
+  # add by Park
+  ${OpenCV_LIBS}
+)
+
+add_executable(camera_image_sub
+  src/camera_image_sub.cpp
+)
+add_dependencies(camera_image_sub ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(camera_image_sub
+  ${catkin_LIBRARIES}
+  #add by Park
+  ${OpenCV_LIBS}
+)
