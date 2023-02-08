@@ -1,63 +1,88 @@
 cmake_minimum_required(VERSION 2.8.3)
-
-project(op_ros_helpers)
-
+project(detected_objects_visualizer)
 
 
 find_package(catkin REQUIRED COMPONENTS
   autoware_msgs
+  cv_bridge
   geometry_msgs
-  jsk_recognition_msgs
-  libwaypoint_follower
-  map_file
-  op_planner
-  op_utility
-  pcl_conversions
-  pcl_ros
+  image_transport
+  roscpp
   sensor_msgs
   tf
-  vector_map_msgs
+  visualization_msgs
 )
 
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS
-    autoware_msgs
-    geometry_msgs
-    libwaypoint_follower
-    vector_map_msgs
+catkin_package()
+
+find_package(OpenCV REQUIRED)
+
+find_package(Eigen3 QUIET)
+
+if(NOT EIGEN3_FOUND)
+  find_package(cmake_modules REQUIRED)
+  find_package(Eigen REQUIRED)
+  set(EIGEN3_INCLUDE_DIRS ${EIGEN_INCLUDE_DIRS})
+  set(EIGEN3_LIBRARIES ${EIGEN_LIBRARIES})
+else()
+  set(EIGEN3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
+endif()
+
+#Rviz Marker visualization
+add_executable(visualize_detected_objects
+  include/visualize_detected_objects.h
+  src/visualize_detected_objects_main.cpp
+  src/visualize_detected_objects.cpp
 )
 
-set(CMAKE_CXX_FLAGS "-O2 -g -Wall -Wno-unused-result ${CMAKE_CXX_FLAGS}")
-
-include_directories(
+target_include_directories(visualize_detected_objects PRIVATE
   include
+  ${OpenCV_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
 )
 
-set(ROS_HELPERS_SRC
-  src/PolygonGenerator.cpp
-  src/op_ROSHelpers.cpp
-)
-
-## Declare a cpp library
-add_library(${PROJECT_NAME}
-  ${ROS_HELPERS_SRC}
-)
-
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(visualize_detected_objects
+  ${OpenCV_LIBRARIES}
+  ${EIGEN3_LIBRARIES}
   ${catkin_LIBRARIES}
 )
 
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.h"
+add_dependencies(visualize_detected_objects
+  ${catkin_EXPORTED_TARGETS}
 )
 
+#Image Rect Visualization
+add_executable(visualize_rects
+  include/visualize_rects.h
+  src/visualize_rects_main.cpp
+  src/visualize_rects.cpp
+)
 
-install(TARGETS ${PROJECT_NAME}
+target_include_directories(visualize_rects PRIVATE
+  include
+  ${OpenCV_INCLUDE_DIR}
+  ${catkin_INCLUDE_DIRS}
+)
+
+target_link_libraries(visualize_rects
+  ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
+add_dependencies(visualize_rects
+  ${catkin_EXPORTED_TARGETS}
+)
+
+install(
+  TARGETS
+    visualize_detected_objects
+    visualize_rects
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+install(DIRECTORY models/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/models
 )
