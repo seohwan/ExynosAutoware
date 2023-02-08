@@ -1,62 +1,72 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(image_processor)
+project(ndt_cpu)
 
+find_package(catkin REQUIRED)
+find_package(PCL REQUIRED)
 
-find_package(catkin REQUIRED COMPONENTS
-  cv_bridge
-  roscpp
-  sensor_msgs
+find_package(Eigen3 QUIET)
+
+if(NOT EIGEN3_FOUND)
+  # Fallback to cmake_modules
+  find_package(cmake_modules REQUIRED)
+  find_package(Eigen REQUIRED)
+  set(EIGEN3_INCLUDE_DIRS ${EIGEN_INCLUDE_DIRS})
+  set(EIGEN3_LIBRARIES ${EIGEN_LIBRARIES})  # Not strictly necessary as Eigen is head only
+  # Possibly map additional variables to the EIGEN3_ prefix.
+else()
+  set(EIGEN3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
+endif()
+
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES ndt_cpu                   #The exported libraries from the project
+  DEPENDS PCL
 )
-
-catkin_package(CATKIN_DEPENDS
-  sensor_msgs
-  cv_bridge
-)
-
-find_package(OpenCV REQUIRED)
 
 include_directories(
-  include
+  "include"
+  ${PCL_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
 )
 
-SET(CMAKE_CXX_FLAGS "-O2 -g -Wall ${CMAKE_CXX_FLAGS}")
-
-#Image rotator
-add_executable(image_rotator
-  nodes/image_rotator/image_rotator_node.cpp
+set(srcs
+  src/NormalDistributionsTransform.cpp
+  src/Registration.cpp
+  src/VoxelGrid.cpp
+  src/Octree.cpp
 )
 
-target_include_directories(image_rotator PRIVATE
-  ${OpenCV_INCLUDE_DIR}
+set(incs
+  include/ndt_cpu/debug.h
+  include/ndt_cpu/NormalDistributionsTransform.h
+  include/ndt_cpu/Registration.h
+  include/ndt_cpu/SymmetricEigenSolver.h
+  include/ndt_cpu/VoxelGrid.h
+  include/ndt_cpu/Octree.h
 )
 
-target_link_libraries(image_rotator
+message(WARNING
+"Adding 'EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT' macro to prevent ndt_matching's runtime error in debug mode.
+  The bug reasons and solutions are written in http://eigen.tuxfamily.org/dox-devel/group__TopicUnalignedArrayAssert.html .
+  This workaround was discussed on https://gitlab.com/autowarefoundation/autoware.ai/core_perception/merge_requests/57 .")
+
+add_definitions(-DEIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT)
+
+add_library(ndt_cpu ${incs} ${srcs})
+
+target_link_libraries(ndt_cpu
+  ${PCL_LIBRARIES}
   ${catkin_LIBRARIES}
-  ${OpenCV_LIBS}
 )
 
-#Image rectifier
-add_executable(image_rectifier
-  nodes/image_rectifier/image_rectifier_node.cpp
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
 )
 
-target_include_directories(image_rectifier PRIVATE
-  ${OpenCV_INCLUDE_DIR}
-)
-
-target_link_libraries(image_rectifier
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBS}
-)
-
-install(TARGETS image_rotator image_rectifier
+install(TARGETS ndt_cpu
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(DIRECTORY launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-  PATTERN ".svn" EXCLUDE
 )
