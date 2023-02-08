@@ -1,20 +1,43 @@
 <?xml version="1.0"?>
-<package format="2">
-  <name>gnss_module</name>
-  <version>0.0.0</version>
-  <description>The gnss_module package</description>
+<package>
+  <name>vesc_ackermann</name>
+  <version>0.0.1</version>
+  <description>
+    Translate between VESC messages and ROS ackermann and odometry messages.
+  </description>
 
-  <maintainer email="kite9240@todo.todo">HayeonP</maintainer>
+  <maintainer email="boulet@ll.mit.edu">Michael T. Boulet</maintainer>
+  <author email="boulet@ll.mit.edu">Michael T. Boulet</author>
+  <license>BSD</license>
 
-  <license>Apache 2</license>
+  <url type="website">http://www.ros.org/wiki/vesc_ackermann</url>
+  <url type="repository">https://github.mit.edu/racecar/racecar-iap</url>
+  <url type="bugtracker">https://github.mit.edu/racecar/racecar-iap/issues</url>
 
   <buildtool_depend>catkin</buildtool_depend>
-  <depend>roscpp</depend>
-  <depend>std_msgs</depend>
-  <depend>geometry_msgs</depend>
-  <depend>rubis_msgs</depend>
-  <depend>inertiallabs_msgs</depend>
-  <depend>message_filters</depend>
-  <depend>tf</depend>
-  <depend>eigen</depend>
+
+  <build_depend>nodelet</build_depend>
+  <build_depend>pluginlib</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>ackermann_msgs</build_depend>
+  <build_depend>vesc_msgs</build_depend>
+
+  <run_depend>nodelet</run_depend>
+  <run_depend>pluginlib</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>ackermann_msgs</run_depend>
+  <run_depend>vesc_msgs</run_depend>
+
+  <export>
+    <nodelet plugin="${prefix}/vesc_ackermann_nodelet.xml"/>
+  </export>
+
 </package>
