@@ -46,7 +46,9 @@ def main():
                     create_branch(branch_name, package_path)
                 else:
                     update_branch(branch_name, package_path)
-                remote_branches.remove('origin/'+branch_name)
+                
+                if 'origin/'+branch_name in remote_branches:
+                    remote_branches.remove('origin/'+branch_name)
 
     # Update rubis_ws
     rubis_ws_path = '../rubis_ws/src'
@@ -67,7 +69,9 @@ def main():
             create_branch(branch_name, package_path)
         else:
             update_branch(branch_name, package_path)
-        remote_branches.remove('origin/'+branch_name)
+        
+        if 'origin/'+branch_name in remote_branches:
+            remote_branches.remove('origin/'+branch_name)
 
     # Delete unexist branches    
     for branch in remote_branches:
