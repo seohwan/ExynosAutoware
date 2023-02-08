@@ -1,62 +1,45 @@
 cmake_minimum_required(VERSION 2.8.3)
+project(twist_gate)
 
-project(op_ros_helpers)
+if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
+  add_definitions(-D__aarch64__)
+endif()
 
 
-
-find_package(catkin REQUIRED COMPONENTS
-  autoware_msgs
-  geometry_msgs
-  jsk_recognition_msgs
-  libwaypoint_follower
-  map_file
-  op_planner
-  op_utility
-  pcl_conversions
-  pcl_ros
-  sensor_msgs
-  tf
-  vector_map_msgs
+find_package(
+  catkin REQUIRED COMPONENTS
+    autoware_config_msgs
+    autoware_msgs
+    geometry_msgs
+    ros_observer
+    roscpp
+    roslint
+    std_msgs
+    tablet_socket_msgs
+    rubis_lib
+    rubis_msgs
 )
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS
-    autoware_msgs
-    geometry_msgs
-    libwaypoint_follower
-    vector_map_msgs
 )
 
-set(CMAKE_CXX_FLAGS "-O2 -g -Wall -Wno-unused-result ${CMAKE_CXX_FLAGS}")
+SET(CMAKE_CXX_FLAGS "-O2 -g -Wall ${CMAKE_CXX_FLAGS}")
+set(ROSLINT_CPP_OPTS "--filter=-build/c++11")
+
+roslint_cpp()
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
 )
 
-set(ROS_HELPERS_SRC
-  src/PolygonGenerator.cpp
-  src/op_ROSHelpers.cpp
-)
+add_executable(twist_gate src/twist_gate_node.cpp src/twist_gate.cpp)
+target_link_libraries(twist_gate ${catkin_LIBRARIES})
+add_dependencies(twist_gate ${catkin_EXPORTED_TARGETS})
 
-## Declare a cpp library
-add_library(${PROJECT_NAME}
-  ${ROS_HELPERS_SRC}
-)
-
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.h"
-)
-
-
-install(TARGETS ${PROJECT_NAME}
+install(
+  TARGETS twist_gate
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
