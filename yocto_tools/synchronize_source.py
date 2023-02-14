@@ -22,6 +22,7 @@ autoware_copy_src_paths = []
 for line in exynos_autoware_paths:     
     autoware_copy_src_paths.append(line.replace('../','~/'))
 for i in range(len(autoware_copy_src_paths)):
+    os.system('rm '+exynos_autoware_paths[i])
     os.system('cp '+ autoware_copy_src_paths[i] + ' ' + exynos_autoware_paths[i])
 
 # rubis_ws
@@ -44,8 +45,6 @@ for index in sorted(remove_idx, reverse=True):
 rubis_copy_src_paths = []
 for i, line in enumerate(exynos_rubis_paths):
     line = line.replace('../','~/')
-    if 'vision_darknet_detect_opencl' in line: continue
-
     if 'rubis_ws/src/vesc_driver' in line:
         line = line.replace('rubis_ws/src/vesc_driver', 'rubis_ws/src/vesc/vesc_driver')
     elif 'rubis_ws/src/vesc_msgs' in line:
@@ -62,11 +61,10 @@ for i, line in enumerate(exynos_rubis_paths):
         line = line.replace('rubis_ws/src/polled_camera', 'rubis_ws/src/image_common/polled_camera')
     elif 'rubis_ws/src/can_translate' in line:
         line = line.replace('rubis_ws/src/can_translate', 'rubis_ws/src/CAN_interface/can_translate')
-    
     rubis_copy_src_paths.append(line)
-    
 
 for i in range(len(rubis_copy_src_paths)):
+    os.system('rm ' + exynos_rubis_paths[i])
     os.system('cp '+ rubis_copy_src_paths[i] + ' ' + exynos_rubis_paths[i])
 
 print('finish')
