@@ -22,7 +22,6 @@ autoware_copy_src_paths = []
 for line in exynos_autoware_paths:     
     autoware_copy_src_paths.append(line.replace('../','~/'))
 for i in range(len(autoware_copy_src_paths)):
-    os.system('rm '+exynos_autoware_paths[i])
     os.system('cp '+ autoware_copy_src_paths[i] + ' ' + exynos_autoware_paths[i])
 
 # rubis_ws
@@ -64,7 +63,6 @@ for i, line in enumerate(exynos_rubis_paths):
     rubis_copy_src_paths.append(line)
 
 for i in range(len(rubis_copy_src_paths)):
-    os.system('rm ' + exynos_rubis_paths[i])
     os.system('cp '+ rubis_copy_src_paths[i] + ' ' + exynos_rubis_paths[i])
 
 print('finish')
