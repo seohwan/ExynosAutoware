@@ -1,69 +1,83 @@
-#include "activation_layer.h"
-#include "utils.h"
-#include "opencl.h"
-#include "blas.h"
-#include "gemm.h"
+// -*- mode:c++; fill-column: 100; -*-
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#ifndef VESC_DRIVER_VESC_DRIVER_H_
+#define VESC_DRIVER_VESC_DRIVER_H_
 
-layer make_activation_layer(int batch, int inputs, ACTIVATION activation)
+#include <string>
+
+#include <ros/ros.h>
+#include <std_msgs/Float64.h>
+#include <boost/optional.hpp>
+
+#include "vesc_driver/vesc_interface.h"
+#include "vesc_driver/vesc_packet.h"
+
+namespace vesc_driver
 {
-#ifdef WIN32
-	layer l;
-#else
-	layer l = { 0 };
-#endif
-    l.type = ACTIVE;
 
-    l.inputs = inputs;
-    l.outputs = inputs;
-    l.batch=batch;
-
-    l.output = (float*)calloc(batch*inputs, sizeof(float*));
-    l.delta = (float*)calloc(batch*inputs, sizeof(float*));
-
-    l.forward = forward_activation_layer;
-    l.backward = backward_activation_layer;
-#ifdef GPU
-    if (gpu_index >= 0) {
-        l.forward_gpu = forward_activation_layer_gpu;
-        l.backward_gpu = backward_activation_layer_gpu;
-        l.update_gpu = 0;
-        l.output_gpu = opencl_make_array(l.output, inputs * batch);
-        l.delta_gpu = opencl_make_array(l.delta, inputs * batch);
-    }
-#endif
-    l.activation = activation;
-    fprintf(stderr, "Activation Layer: %d inputs\n", inputs);
-    return l;
-}
-
-void forward_activation_layer(layer l, network net)
+class VescDriver
 {
-    copy_cpu(l.outputs*l.batch, net.input, 1, l.output, 1);
-    activate_array(l.output, l.outputs*l.batch, l.activation);
-}
+public:
 
-void backward_activation_layer(layer l, network net)
-{
-    gradient_array(l.output, l.outputs*l.batch, l.activation, l.delta);
-    copy_cpu(l.outputs*l.batch, l.delta, 1, net.delta, 1);
-}
+  VescDriver(ros::NodeHandle nh,
+             ros::NodeHandle private_nh);
 
-#ifdef GPU
+private:
+  // interface to the VESC
+  VescInterface vesc_;
+  void vescPacketCallback(const boost::shared_ptr<VescPacket const>& packet);
+  void vescErrorCallback(const std::string& error);
 
-void forward_activation_layer_gpu(layer l, network net)
-{
-    copy_gpu(l.outputs*l.batch, net.input_gpu, 1, l.output_gpu, 1);
-    activate_array_gpu(l.output_gpu, l.outputs*l.batch, l.activation);
-}
+  // limits on VESC commands
+  struct CommandLimit
+  {
+    CommandLimit(const ros::NodeHandle& nh, const std::string& str,
+                 const boost::optional<double>& min_lower = boost::optional<double>(),
+                 const boost::optional<double>& max_upper = boost::optional<double>());
+    double clip(double value);
+    std::string name;
+    boost::optional<double> lower;
+    boost::optional<double> upper;
+  };
+  CommandLimit duty_cycle_limit_;
+  CommandLimit current_limit_;
+  CommandLimit brake_limit_;
+  CommandLimit speed_limit_;
+  CommandLimit position_limit_;
+  CommandLimit servo_limit_;
 
-void backward_activation_layer_gpu(layer l, network net)
-{
-    gradient_array_gpu(l.output_gpu, l.outputs*l.batch, l.activation, l.delta_gpu);
-    copy_gpu(l.outputs*l.batch, l.delta_gpu, 1, net.delta_gpu, 1);
-}
-#endif
+  // ROS services
+  ros::Publisher state_pub_;
+  ros::Publisher servo_sensor_pub_;
+  ros::Subscriber duty_cycle_sub_;
+  ros::Subscriber current_sub_;
+  ros::Subscriber brake_sub_;
+  ros::Subscriber speed_sub_;
+  ros::Subscriber position_sub_;
+  ros::Subscriber servo_sub_;
+  ros::Timer timer_;
+
+  // driver modes (possible states)
+  typedef enum {
+    MODE_INITIALIZING,
+    MODE_OPERATING
+  } driver_mode_t;
+
+  // other variables
+  driver_mode_t driver_mode_;           ///< driver state machine mode (state)
+  int fw_version_major_;                ///< firmware major version reported by vesc
+  int fw_version_minor_;                ///< firmware minor version reported by vesc
+
+  // ROS callbacks
+  void timerCallback(const ros::TimerEvent& event);
+  void dutyCycleCallback(const std_msgs::Float64::ConstPtr& duty_cycle);
+  void currentCallback(const std_msgs::Float64::ConstPtr& current);
+  void brakeCallback(const std_msgs::Float64::ConstPtr& brake);
+  void speedCallback(const std_msgs::Float64::ConstPtr& speed);
+  void positionCallback(const std_msgs::Float64::ConstPtr& position);
+  void servoCallback(const std_msgs::Float64::ConstPtr& servo);
+};
+
+} // namespace vesc_driver
+
+#endif // VESC_DRIVER_VESC_DRIVER_H_

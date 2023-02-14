@@ -1,16 +1,12 @@
-#include <ros/ros.h>
+#define PKG_NAME        0
+#define TARGET_NAME     1
+#define CREATE_TOPIC    2
+#define CHECK_TOPIC     3
+#define TARGET_TYPE     4
+#define RUN             0
+#define LAUNCH          1
 
-#include "vesc_ackermann/ackermann_to_vesc.h"
+#define CHILD           0
 
-int main(int argc, char** argv)
-{
-  ros::init(argc, argv, "ackermann_to_vesc_node");
-  ros::NodeHandle nh;
-  ros::NodeHandle private_nh("~");
-
-  vesc_ackermann::AckermannToVesc ackermann_to_vesc(nh, private_nh);
-
-  ros::spin();
-
-  return 0;
-}
+#define INT_TO_STEP(a)  a+1
+#define STEP(a)  a-1

@@ -1,247 +1,194 @@
-#include "convolutional_layer.h"
-#include "batchnorm_layer.h"
-#include "blas.h"
-#include <stdio.h>
+// -*- mode:c++; fill-column: 100; -*-
 
-layer make_batchnorm_layer(int batch, int w, int h, int c)
+#ifndef VESC_DRIVER_VESC_PACKET_H_
+#define VESC_DRIVER_VESC_PACKET_H_
+
+#include <string>
+#include <vector>
+#include <utility>
+
+#include <boost/crc.hpp>
+#include <boost/shared_ptr.hpp>
+
+#include "vesc_driver/v8stdint.h"
+
+namespace vesc_driver
 {
-    fprintf(stderr, "Batch Normalization Layer: %d x %d x %d image\n", w,h,c);
-	layer l;
-    l.type = BATCHNORM;
-    l.batch = batch;
-    l.h = l.out_h = h;
-    l.w = l.out_w = w;
-    l.c = l.out_c = c;
-    l.output = (float*)calloc(h * w * c * batch, sizeof(float));
-    l.delta  = (float*)calloc(h * w * c * batch, sizeof(float));
-    l.inputs = w*h*c;
-    l.outputs = l.inputs;
 
-    l.scales = (float*)calloc(c, sizeof(float));
-    l.scale_updates = (float*)calloc(c, sizeof(float));
-	
-    l.biases = (float*)calloc(c, sizeof(float));
-    l.bias_updates = (float*)calloc(c, sizeof(float));
-	
-    int i;
-    for(i = 0; i < c; ++i){
-        l.scales[i] = 1;
-    }
+typedef std::vector<uint8_t> Buffer;
+typedef std::pair<Buffer::iterator, Buffer::iterator> BufferRange;
+typedef std::pair<Buffer::const_iterator, Buffer::const_iterator> BufferRangeConst;
 
-    l.mean = (float*)calloc(c, sizeof(float));
-    l.variance = (float*)calloc(c, sizeof(float));
-
-    l.rolling_mean = (float*)calloc(c, sizeof(float));
-    l.rolling_variance = (float*)calloc(c, sizeof(float));
-
-    l.mean_delta = (float*)calloc(c, sizeof(float));
-    l.variance_delta = (float*)calloc(c, sizeof(float));
-
-    l.x = (float*)calloc(l.batch*l.outputs, sizeof(float));
-    l.x_norm = (float*)calloc(l.batch*l.outputs, sizeof(float));
-
-    l.forward = forward_batchnorm_layer;
-    l.backward = backward_batchnorm_layer;
-#ifdef GPU
-    if (gpu_index >= 0) {
-        l.forward_gpu = forward_batchnorm_layer_gpu;
-        l.backward_gpu = backward_batchnorm_layer_gpu;
-
-        l.update_gpu = 0;
-
-        l.output_gpu = opencl_make_array(l.output, h * w * c * batch);
-        l.delta_gpu = opencl_make_array(l.delta, h * w * c * batch);
-
-        l.biases_gpu = opencl_make_array(l.biases, c);
-        l.bias_updates_gpu = opencl_make_array(l.bias_updates, c);
-
-        l.scales_gpu = opencl_make_array(l.scales, c);
-        l.scale_updates_gpu = opencl_make_array(l.scale_updates, c);
-
-        l.mean_gpu = opencl_make_array(l.mean, c);
-        l.variance_gpu = opencl_make_array(l.variance, c);
-
-        l.rolling_mean_gpu = opencl_make_array(l.mean, c);
-        l.rolling_variance_gpu = opencl_make_array(l.variance, c);
-
-        l.mean_delta_gpu = opencl_make_array(l.mean_delta, c);
-        l.variance_delta_gpu = opencl_make_array(l.variance_delta, c);
-
-        l.x_gpu = opencl_make_array(l.x, l.batch * l.outputs);
-        l.x_norm_gpu = opencl_make_array(l.x_norm, l.batch * l.outputs);
-    }
-#endif
-    return l;
-}
-
-void backward_scale_cpu(float *x_norm, float *delta, int batch, int n, int size, float *scale_updates)
+/** The raw frame for communicating with the VESC */
+class VescFrame
 {
-    int i,b,f;
-    for(f = 0; f < n; ++f){
-        float sum = 0;
-        for(b = 0; b < batch; ++b){
-            for(i = 0; i < size; ++i){
-                int index = i + size*(f + n*b);
-                sum += delta[index] * x_norm[index];
-            }
-        }
-        scale_updates[f] += sum;
-    }
-}
+public:
+  virtual ~VescFrame() {}
 
-void mean_delta_cpu(float *delta, float *variance, int batch, int filters, int spatial, float *mean_delta)
+  // getters
+  virtual const Buffer& frame() const {return *frame_;}
+
+  // VESC packet properties
+  static const int VESC_MAX_PAYLOAD_SIZE = 1024;          ///< Maximum VESC payload size, in bytes
+  static const int VESC_MIN_FRAME_SIZE = 5;               ///< Smallest VESC frame size, in bytes
+  static const int VESC_MAX_FRAME_SIZE = 6 + VESC_MAX_PAYLOAD_SIZE; ///< Largest VESC frame size, in bytes
+  static const unsigned int VESC_SOF_VAL_SMALL_FRAME = 2; ///< VESC start of "small" frame value
+  static const unsigned int VESC_SOF_VAL_LARGE_FRAME = 3; ///< VESC start of "large" frame value
+  static const unsigned int VESC_EOF_VAL = 3;             ///< VESC end-of-frame value
+
+  /** CRC parameters for the VESC */
+  typedef boost::crc_optimal<16, 0x1021, 0, 0, false, false> CRC;
+
+protected:
+  /** Construct frame with specified payload size. */
+  VescFrame(int payload_size);
+
+  boost::shared_ptr<Buffer> frame_; ///< Stores frame data, shared_ptr for shallow copy
+  BufferRange payload_;             ///< View into frame's payload section
+
+private:
+  /** Construct from buffer. Used by VescPacketFactory factory. */
+  VescFrame(const BufferRangeConst& frame, const BufferRangeConst& payload);
+
+  /** Give VescPacketFactory access to private constructor. */
+  friend class VescPacketFactory;
+};
+
+/*------------------------------------------------------------------------------------------------*/
+
+/** A VescPacket is a VescFrame with a non-zero length payload */
+class VescPacket : public VescFrame
 {
-    int i,j,k;
-    for(i = 0; i < filters; ++i){
-        mean_delta[i] = 0;
-        for (j = 0; j < batch; ++j) {
-            for (k = 0; k < spatial; ++k) {
-                int index = j*filters*spatial + i*spatial + k;
-                mean_delta[i] += delta[index];
-            }
-        }
-        mean_delta[i] *= (-1./sqrt(variance[i] + .00001f));
-    }
-}
+public:
+  virtual ~VescPacket() {}
 
-void  variance_delta_cpu(float *x, float *delta, float *mean, float *variance, int batch, int filters, int spatial, float *variance_delta)
+  virtual const std::string& name() const {return name_;}
+
+protected:
+  VescPacket(const std::string& name, int payload_size, int payload_id);
+  VescPacket(const std::string& name, boost::shared_ptr<VescFrame> raw);
+
+private:
+  std::string name_;
+};
+
+typedef boost::shared_ptr<VescPacket> VescPacketPtr;
+typedef boost::shared_ptr<VescPacket const> VescPacketConstPtr;
+
+/*------------------------------------------------------------------------------------------------*/
+
+class VescPacketFWVersion : public VescPacket
 {
-    int i,j,k;
-    for(i = 0; i < filters; ++i){
-        variance_delta[i] = 0;
-        for(j = 0; j < batch; ++j){
-            for(k = 0; k < spatial; ++k){
-                int index = j*filters*spatial + i*spatial + k;
-                variance_delta[i] += delta[index]*(x[index] - mean[i]);
-            }
-        }
-        variance_delta[i] *= -.5 * pow(variance[i] + .00001f, (float)(-3./2.));
-    }
-}
+public:
+  VescPacketFWVersion(boost::shared_ptr<VescFrame> raw);
 
-void normalize_delta_cpu(float *x, float *mean, float *variance, float *mean_delta, float *variance_delta, int batch, int filters, int spatial, float *delta)
+  int fwMajor() const;
+  int fwMinor() const;
+
+};
+
+class VescPacketRequestFWVersion : public VescPacket
 {
-    int f, j, k;
-    for(j = 0; j < batch; ++j){
-        for(f = 0; f < filters; ++f){
-            for(k = 0; k < spatial; ++k){
-                int index = j*filters*spatial + f*spatial + k;
-                delta[index] = delta[index] * 1./(sqrt(variance[f] + .00001f)) + variance_delta[f] * 2. * (x[index] - mean[f]) / (spatial * batch) + mean_delta[f]/(spatial*batch);
-            }
-        }
-    }
-}
+public:
+  VescPacketRequestFWVersion();
 
-void resize_batchnorm_layer(layer *layer, int w, int h)
+};
+
+/*------------------------------------------------------------------------------------------------*/
+
+class VescPacketValues : public VescPacket
 {
-    fprintf(stderr, "Not implemented\n");
-}
+public:
+  VescPacketValues(boost::shared_ptr<VescFrame> raw);
 
-void forward_batchnorm_layer(layer l, network net)
+  double v_in() const;
+  double temp_mos1() const;
+  double temp_mos2() const;
+  double temp_mos3() const;
+  double temp_mos4() const;
+  double temp_mos5() const;
+  double temp_mos6() const;
+  double temp_pcb() const;
+  double current_motor() const;
+  double current_in() const;
+  double rpm() const;
+  double duty_now() const;
+  double amp_hours() const;
+  double amp_hours_charged() const;
+  double watt_hours() const;
+  double watt_hours_charged() const;
+  double tachometer() const;
+  double tachometer_abs() const;
+  int fault_code() const;
+
+};
+
+class VescPacketRequestValues : public VescPacket
 {
-    if(l.type == BATCHNORM) copy_cpu(l.outputs*l.batch, net.input, 1, l.output, 1);
-    copy_cpu(l.outputs*l.batch, l.output, 1, l.x, 1);
-    if(net.train){
-        mean_cpu(l.output, l.batch, l.out_c, l.out_h*l.out_w, l.mean);
-        variance_cpu(l.output, l.mean, l.batch, l.out_c, l.out_h*l.out_w, l.variance);
+public:
+  VescPacketRequestValues();
+};
 
-        scal_cpu(l.out_c, .99, l.rolling_mean, 1);
-        axpy_cpu(l.out_c, .01, l.mean, 1, l.rolling_mean, 1);
-        scal_cpu(l.out_c, .99, l.rolling_variance, 1);
-        axpy_cpu(l.out_c, .01, l.variance, 1, l.rolling_variance, 1);
+/*------------------------------------------------------------------------------------------------*/
 
-        normalize_cpu(l.output, l.mean, l.variance, l.batch, l.out_c, l.out_h*l.out_w);   
-        copy_cpu(l.outputs*l.batch, l.output, 1, l.x_norm, 1);
-    } else {
-        normalize_cpu(l.output, l.rolling_mean, l.rolling_variance, l.batch, l.out_c, l.out_h*l.out_w);
-    }
-    scale_bias(l.output, l.scales, l.batch, l.out_c, l.out_h*l.out_w);
-    add_bias(l.output, l.biases, l.batch, l.out_c, l.out_h*l.out_w);
-}
-
-void backward_batchnorm_layer(layer l, network net)
+class VescPacketSetDuty : public VescPacket
 {
-    if(!net.train){
-        l.mean = l.rolling_mean;
-        l.variance = l.rolling_variance;
-    }
-    backward_bias(l.bias_updates, l.delta, l.batch, l.out_c, l.out_w*l.out_h);
-    backward_scale_cpu(l.x_norm, l.delta, l.batch, l.out_c, l.out_w*l.out_h, l.scale_updates);
+public:
+  VescPacketSetDuty(double duty);
 
-    scale_bias(l.delta, l.scales, l.batch, l.out_c, l.out_h*l.out_w);
+  //  double duty() const;
+};
 
-    mean_delta_cpu(l.delta, l.variance, l.batch, l.out_c, l.out_w*l.out_h, l.mean_delta);
-    variance_delta_cpu(l.x, l.delta, l.mean, l.variance, l.batch, l.out_c, l.out_w*l.out_h, l.variance_delta);
-    normalize_delta_cpu(l.x, l.mean, l.variance, l.mean_delta, l.variance_delta, l.batch, l.out_c, l.out_w*l.out_h, l.delta);
-    if(l.type == BATCHNORM) copy_cpu(l.outputs*l.batch, l.delta, 1, net.delta, 1);
-}
+/*------------------------------------------------------------------------------------------------*/
 
-#ifdef GPU
-
-void pull_batchnorm_layer(layer l)
+class VescPacketSetCurrent : public VescPacket
 {
-    opencl_pull_array(l.scales_gpu, l.scales, l.c);
-    opencl_pull_array(l.rolling_mean_gpu, l.rolling_mean, l.c);
-    opencl_pull_array(l.rolling_variance_gpu, l.rolling_variance, l.c);
-}
-void push_batchnorm_layer(layer l)
+public:
+  VescPacketSetCurrent(double current);
+
+  //  double current() const;
+};
+
+/*------------------------------------------------------------------------------------------------*/
+
+class VescPacketSetCurrentBrake : public VescPacket
 {
-    opencl_push_array(l.scales_gpu, l.scales, l.c);
-    opencl_push_array(l.rolling_mean_gpu, l.rolling_mean, l.c);
-    opencl_push_array(l.rolling_variance_gpu, l.rolling_variance, l.c);
-}
+public:
+  VescPacketSetCurrentBrake(double current_brake);
 
-void forward_batchnorm_layer_gpu(layer l, network net)
+  //  double current_brake() const;
+};
+
+/*------------------------------------------------------------------------------------------------*/
+
+class VescPacketSetRPM : public VescPacket
 {
-    if(l.type == BATCHNORM) copy_gpu(l.outputs*l.batch, net.input_gpu, 1, l.output_gpu, 1);
-    copy_gpu(l.outputs*l.batch, l.output_gpu, 1, l.x_gpu, 1);
-    if (net.train) {
-#ifdef GPU_FAST
-        fast_mean_gpu(l.output_gpu, l.batch, l.out_c, l.out_h*l.out_w, l.mean_gpu);
-        fast_variance_gpu(l.output_gpu, l.mean_gpu, l.batch, l.out_c, l.out_h*l.out_w, l.variance_gpu);
-#else
-        mean_gpu(l.output_gpu, l.batch, l.out_c, l.out_h*l.out_w, l.mean_gpu);
-        variance_gpu(l.output_gpu, l.mean_gpu, l.batch, l.out_c, l.out_h*l.out_w, l.variance_gpu);
-#endif
-        scal_gpu(l.out_c, .99, l.rolling_mean_gpu, 1);
-        axpy_gpu(l.out_c, .01, l.mean_gpu, 1, l.rolling_mean_gpu, 1);
-        scal_gpu(l.out_c, .99, l.rolling_variance_gpu, 1);
-        axpy_gpu(l.out_c, .01, l.variance_gpu, 1, l.rolling_variance_gpu, 1);
+public:
+  VescPacketSetRPM(double rpm);
 
-        copy_gpu(l.outputs*l.batch, l.output_gpu, 1, l.x_gpu, 1);
-        normalize_gpu(l.output_gpu, l.mean_gpu, l.variance_gpu, l.batch, l.out_c, l.out_h*l.out_w);
-        copy_gpu(l.outputs*l.batch, l.output_gpu, 1, l.x_norm_gpu, 1);
+  //  double rpm() const;
+};
 
-        scale_bias_gpu(l.output_gpu, l.scales_gpu, l.batch, l.out_c, l.out_h*l.out_w);
-        add_bias_gpu(l.output_gpu, l.biases_gpu, l.batch, l.out_c, l.out_w*l.out_h);
-    } else {
-        normalize_gpu(l.output_gpu, l.rolling_mean_gpu, l.rolling_variance_gpu, l.batch, l.out_c, l.out_h*l.out_w);
-        scale_bias_gpu(l.output_gpu, l.scales_gpu, l.batch, l.out_c, l.out_h*l.out_w);
-        add_bias_gpu(l.output_gpu, l.biases_gpu, l.batch, l.out_c, l.out_w*l.out_h);
-    }
-}
+/*------------------------------------------------------------------------------------------------*/
 
-void backward_batchnorm_layer_gpu(layer l, network net)
+class VescPacketSetPos : public VescPacket
 {
-    if(!net.train){
-        l.mean_gpu = l.rolling_mean_gpu;
-        l.variance_gpu = l.rolling_variance_gpu;
-    }
+public:
+  VescPacketSetPos(double pos);
 
-    backward_bias_gpu(l.bias_updates_gpu, l.delta_gpu, l.batch, l.out_c, l.out_w*l.out_h);
-    backward_scale_gpu(l.x_norm_gpu, l.delta_gpu, l.batch, l.out_c, l.out_w*l.out_h, l.scale_updates_gpu);
+  //  double pos() const;
+};
 
-    scale_bias_gpu(l.delta_gpu, l.scales_gpu, l.batch, l.out_c, l.out_h*l.out_w);
+/*------------------------------------------------------------------------------------------------*/
 
-#ifdef GPU_FAST
-    fast_mean_delta_gpu(l.delta_gpu, l.variance_gpu, l.batch, l.out_c, l.out_w*l.out_h, l.mean_delta_gpu);
-    fast_variance_delta_gpu(l.x_gpu, l.delta_gpu, l.mean_gpu, l.variance_gpu, l.batch, l.out_c, l.out_w*l.out_h, l.variance_delta_gpu);
-#else
-    mean_delta_gpu(l.delta_gpu, l.variance_gpu, l.batch, l.out_c, l.out_w*l.out_h, l.mean_delta_gpu);
-    variance_delta_gpu(l.x_gpu, l.delta_gpu, l.mean_gpu, l.variance_gpu, l.batch, l.out_c, l.out_w*l.out_h, l.variance_delta_gpu);
-#endif
-    normalize_delta_gpu(l.x_gpu, l.mean_gpu, l.variance_gpu, l.mean_delta_gpu, l.variance_delta_gpu, l.batch, l.out_c, l.out_w*l.out_h, l.delta_gpu);
+class VescPacketSetServoPos : public VescPacket
+{
+public:
+  VescPacketSetServoPos(double servo_pos);
 
-    if(l.type == BATCHNORM) copy_gpu(l.outputs*l.batch, l.delta_gpu, 1, net.delta_gpu, 1);
-}
-#endif
+  //  double servo_pos() const;
+};
+
+} // namespace vesc_driver
+
+#endif // VESC_DRIVER_VESC_PACKET_H_

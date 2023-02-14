@@ -51,6 +51,18 @@ add_executable(rubis_testbed_autorunner
   src/rubis_testbed_autorunner/rubis_testbed_autorunner.cpp
 )
 
+add_executable(carla_lkas_autorunner
+  include/carla_autorunner/carla_autorunner.h
+  src/carla_autorunner/carla_lkas_autorunner_node.cpp
+  src/carla_autorunner/carla_lkas_autorunner.cpp
+)
+
+add_executable(carla_full_autorunner
+  include/carla_autorunner/carla_autorunner.h
+  src/carla_autorunner/carla_full_autorunner_node.cpp
+  src/carla_autorunner/carla_full_autorunner.cpp
+)
+
 add_dependencies(cubetown_lkas_autorunner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(cubetown_lkas_autorunner
   ${catkin_LIBRARIES}
@@ -69,9 +81,23 @@ target_link_libraries(rubis_testbed_autorunner
   ros_autorunner_lib
 )
 
+add_dependencies(carla_lkas_autorunner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(carla_lkas_autorunner
+  ${catkin_LIBRARIES}
+  ros_autorunner_lib
+)
+
+add_dependencies(carla_full_autorunner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(carla_full_autorunner
+  ${catkin_LIBRARIES}
+  ros_autorunner_lib
+)
+
 install(
   TARGETS
     ros_autorunner_lib
+    carla_lkas_autorunner
+    carla_full_autorunner
     cubetown_lkas_autorunner
     cubetown_full_autorunner
     rubis_testbed_autorunner

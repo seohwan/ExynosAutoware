@@ -1,57 +1,28 @@
-// This header is from the v8 google project:
-// http://code.google.com/p/v8/source/browse/trunk/include/v8stdint.h
+#include <ros/ros.h>
+#include <ros/time.h>
+#include <sensor_msgs/Image.h>
 
-// Copyright 2012 the V8 project authors. All rights reserved.
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-//       copyright notice, this list of conditions and the following
-//       disclaimer in the documentation and/or other materials provided
-//       with the distribution.
-//     * Neither the name of Google Inc. nor the names of its
-//       contributors may be used to endorse or promote products derived
-//       from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+static ros::Subscriber sub;
+static ros::Publisher pub;
 
-// Load definitions of standard types.
+void camera_cb(const sensor_msgs::Image& msg){
+    sensor_msgs::Image out;
+    out = msg;
+    out.header.stamp = ros::Time::now();
+    pub.publish(out);
+}
 
-#ifndef V8STDINT_H_
-#define V8STDINT_H_
+int main(int argc, char** argv){
+    ros::init(argc, argv, "lidar_republisher");
+    ros::NodeHandle nh;    
+    std::string input_topic;
+    nh.param<std::string>("/camera_republisher/input_topic", input_topic, "/image_raw_origin");
 
-#include <stddef.h>
-#include <stdio.h>
+    sub = nh.subscribe(input_topic, 1, camera_cb);
+    pub = nh.advertise<sensor_msgs::Image>("/image_raw", 1);    
 
-#if defined(_WIN32) && !defined(__MINGW32__)
-
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef short int16_t;  // NOLINT
-typedef unsigned short uint16_t;  // NOLINT
-typedef int int32_t;
-typedef unsigned int uint32_t;
-typedef __int64 int64_t;
-typedef unsigned __int64 uint64_t;
-// intptr_t and friends are defined in crtdefs.h through stdio.h.
-
-#else
-
-#include <stdint.h>
-
-#endif
-
-#endif  // V8STDINT_H_
+    while(ros::ok())
+        ros::spin();
+    
+    return 0;
+}

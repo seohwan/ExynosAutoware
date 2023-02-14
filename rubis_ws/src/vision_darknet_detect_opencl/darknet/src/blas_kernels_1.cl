@@ -1,82 +1,230 @@
-// -*- mode:c++; fill-column: 100; -*-
+#include <iostream>
+#include <algorithm>
 
-#ifndef VESC_DRIVER_VESC_PACKET_FACTORY_H_
-#define VESC_DRIVER_VESC_PACKET_FACTORY_H_
+#include <ros/ros.h>
+#include <ros/time.h>
+#include <std_msgs/Header.h>
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/PolygonStamped.h>
+#include <geometry_msgs/Point32.h>
+#include <autoware_msgs/DetectedObject.h>
+#include <autoware_msgs/DetectedObjectArray.h>
 
-#include <vector>
-#include <map>
-#include <string>
+static std::vector<std::string> type_names;
+void init_type_names();
 
-#include <boost/noncopyable.hpp>
-#include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+std_msgs::Header create_header(int seq, std::string frame_id);
 
-#include "vesc_driver/v8stdint.h"
-#include "vesc_driver/vesc_packet.h"
+int main(int argc, char* argv[]){
+    init_type_names();
 
-namespace vesc_driver
-{
+    // Initialize
+    ros::init(argc, argv, "fake_object_generator");
+    ros::NodeHandle nh;
+    ros::Rate rate(10);
+    ros::Publisher fake_object_pub;
+    ros::Publisher polygon_pub1;
+    ros::Publisher polygon_pub2;
+    // ros::Publisher bb_pub1;
+    // ros::Publisher bb_pub2;
 
-/**
- * Class for creating VESC packets from raw data.
- */
-class VescPacketFactory : private boost::noncopyable
-{
-public:
-  /** Return the global factory object */
-  static VescPacketFactory* getFactory();
+    XmlRpc::XmlRpcValue list;
+    nh.getParam("/fake_object_generator/test", list);
+    for(int i=0; i<list.size(); i++){
+        std::cout<<type_names[list[i].getType()]<<std::endl;
+        std::cout<<list[i]<<std::endl;
+        std::cout<<type_names[list[i][0].getType()]<<std::endl;
+        std::cout<<list[i][0]<<" "<<list[i][1]<<std::endl;
+    }
 
-  /**
-   * Create a VescPacket from a buffer (factory function). Packet must start (start of frame
-   * character) at @p begin and complete (end of frame character) before *p end. The buffer element
-   * at @p end is not examined, i.e. it can be the past-the-end element. Only returns a packet if
-   * the packet is valid, i.e. valid size, matching checksum, complete etc. An empty pointer is
-   * returned if a packet cannot be found or if it is invalid. If a valid packet is not found,
-   * optional output parameter @what is set to a string providing a reason why a packet was not
-   * found. If a packet was not found because additional bytes are needed on the buffer, optional
-   * output parameter @p num_bytes_needed will contain the number of bytes needed to either
-   * determine the size of the packet or complete the packet. Output parameters @p num_bytes_needed
-   * and @p what will be set to 0 and empty if a valid packet is found.
-   *
-   * @param begin[in] Iterator to a buffer at the start-of-frame character
-   * @param end[in] Iterator to the buffer past-the-end element.
-   * @param num_bytes_needed[out] Number of bytes needed to determine the packet size or complete
-   *                              the frame.
-   * @param what[out] Human readable string giving a reason why the packet was not found.
-   *
-   * @return Pointer to a valid VescPacket if successful. Otherwise, an empty pointer.
-   */
-  static VescPacketPtr createPacket(const Buffer::const_iterator& begin,
-                                    const Buffer::const_iterator& end,
-                                    int* num_bytes_needed, std::string* what);
 
-  typedef boost::function<VescPacketPtr(boost::shared_ptr<VescFrame>)> CreateFn;
 
-  /** Register a packet type with the factory. */
-  static void registerPacketType(int payload_id, CreateFn fn);
+    fake_object_pub = nh.advertise<autoware_msgs::DetectedObjectArray>("/tracked_objects", 10);
+    polygon_pub1 = nh.advertise<geometry_msgs::PolygonStamped>("/fake_polygon1", 10);
+    polygon_pub2 = nh.advertise<geometry_msgs::PolygonStamped>("/fake_polygon2", 10);
+    int obstacle_num;
+    std::vector<float> convex_hull_param1;
+    std::vector<float> convex_hull_param2;
+    std::string frame_id;
+    nh.getParam("/fake_object_generator/obstacle_num", obstacle_num);
+    nh.getParam("/fake_object_generator/convex_hull1", convex_hull_param1);
+    nh.getParam("/fake_object_generator/convex_hull2", convex_hull_param2);    
+    nh.getParam("/fake_object_generator/frame_id", frame_id);
+    
 
-private:
+    std::vector<geometry_msgs::Point32> convex_hull_points1;
+    std::vector<geometry_msgs::Point32> convex_hull_points2;
+    std::vector<float> x_vec1;
+    std::vector<float> y_vec1;
+    std::vector<float> z_vec1;
+    std::vector<float> x_vec2;
+    std::vector<float> y_vec2;
+    std::vector<float> z_vec2;
 
-  typedef std::map<int, CreateFn > FactoryMap;
-  static FactoryMap* getMap();
-};
+    for(auto it = convex_hull_param1.begin(); it != convex_hull_param1.end(); ++it){
+        int idx = it - convex_hull_param1.begin();
+        geometry_msgs::Point32 point;
+        if(idx%3 == 0){
+            x_vec1.push_back(*it);
+        }    
+        else if(idx%3 == 1){
+            y_vec1.push_back(*it);
+        }
+        else if(idx%3 == 2){
+            z_vec1.push_back(*it);
+            geometry_msgs::Point32 point;
+            point.x = x_vec1[idx/3];
+            point.y = y_vec1[idx/3];
+            point.z = z_vec1[idx/3];    
+            convex_hull_points1.push_back(point);
+        }
+    }
 
-/** Use this macro to register packets */
-#define REGISTER_PACKET_TYPE(id, klass)   \
-class klass##Factory \
-{ \
-public: \
-  klass##Factory() \
-  { \
-    VescPacketFactory::registerPacketType((id), &klass##Factory::create); \
-  } \
-  static VescPacketPtr create(boost::shared_ptr<VescFrame> frame) \
-  { \
-    return VescPacketPtr(new klass(frame)); \
-  } \
-}; \
-static klass##Factory global_##klass##Factory;
+    for(auto it = convex_hull_param2.begin(); it != convex_hull_param2.end(); ++it){
+        int idx = it - convex_hull_param2.begin();
+        geometry_msgs::Point32 point;
+        if(idx%3 == 0){
+            x_vec2.push_back(*it);
+        }    
+        else if(idx%3 == 1){
+            y_vec2.push_back(*it);
+        }
+        else if(idx%3 == 2){
+            z_vec2.push_back(*it);
+            geometry_msgs::Point32 point;
+            point.x = x_vec2[idx/3];
+            point.y = y_vec2[idx/3];
+            point.z = z_vec2[idx/3];    
+            convex_hull_points2.push_back(point);
+        }
+    }
+    
+    // Create Fake Object
+    autoware_msgs::DetectedObjectArray fake_object_array;
+    autoware_msgs::DetectedObject fake_object1;
+    autoware_msgs::DetectedObject fake_object2;
+    
+    // ID
+    fake_object1.id = 415;
 
-} // namespace vesc_driver
+    // Convex Hull
+    for(auto it = convex_hull_points1.begin(); it != convex_hull_points1.end(); ++it){
+        geometry_msgs::Point32 point = *it;
+        fake_object1.convex_hull.polygon.points.push_back(*it);        
+    }
 
-#endif // VESC_DRIVER_VESC_PACKET_FACTORY_H_
+    // Pose
+    float max_x, min_x, max_y, min_y, max_z, min_z;
+    max_x = *std::max_element(x_vec1.begin(), x_vec1.end());
+    min_x = *std::min_element(x_vec1.begin(), x_vec1.end());
+    max_y = *std::max_element(y_vec1.begin(), y_vec1.end());
+    min_y = *std::min_element(y_vec1.begin(), y_vec1.end());
+    max_z = *std::max_element(z_vec1.begin(), z_vec1.end());
+    min_z = *std::min_element(z_vec1.begin(), z_vec1.end());
+
+    fake_object1.pose.position.x = min_x + (max_x-min_x)/2.0;
+    fake_object1.pose.position.y = min_y + (max_y-min_y)/2.0;
+    fake_object1.pose.position.z = min_z + (max_z-min_z)/2.0;
+    fake_object1.pose.orientation.x = 0;
+    fake_object1.pose.orientation.y = 0;
+    fake_object1.pose.orientation.z = 0;
+    fake_object1.pose.orientation.w = 0;
+    // Dimension
+    fake_object1.dimensions.x = (max_x-min_x)/2.0;
+    fake_object1.dimensions.y = (max_y-min_y)/2.0;
+    fake_object1.dimensions.z = (max_z-min_z)/2.0;
+    // Velocity
+    fake_object1.velocity.linear.x = 0.5;
+    fake_object1.velocity.linear.y = 0.5;
+    fake_object1.velocity.linear.z = 0.5;
+    // Polygon
+    geometry_msgs::PolygonStamped polygon1;
+    polygon1 = fake_object1.convex_hull;
+
+    //////////////////////////
+    
+    // ID
+    fake_object2.id = 416;
+
+    // Convex Hull
+    for(auto it = convex_hull_points2.begin(); it != convex_hull_points2.end(); ++it){
+        geometry_msgs::Point32 point = *it;
+        fake_object2.convex_hull.polygon.points.push_back(*it);        
+    }
+
+    // Pose
+    max_x = *std::max_element(x_vec2.begin(), x_vec2.end());
+    min_x = *std::min_element(x_vec2.begin(), x_vec2.end());
+    max_y = *std::max_element(y_vec2.begin(), y_vec2.end());
+    min_y = *std::min_element(y_vec2.begin(), y_vec2.end());
+    max_z = *std::max_element(z_vec2.begin(), z_vec2.end());
+    min_z = *std::min_element(z_vec2.begin(), z_vec2.end());
+
+    fake_object2.pose.position.x = min_x + (max_x-min_x)/2.0;
+    fake_object2.pose.position.y = min_y + (max_y-min_y)/2.0;
+    fake_object2.pose.position.z = min_z + (max_z-min_z)/2.0;
+    fake_object2.pose.orientation.x = 0;
+    fake_object2.pose.orientation.y = 0;
+    fake_object2.pose.orientation.z = 0;
+    fake_object2.pose.orientation.w = 0;
+
+    // Dimension
+    fake_object2.dimensions.x = (max_x-min_x)/2.0;
+    fake_object2.dimensions.y = (max_y-min_y)/2.0;
+    fake_object2.dimensions.z = (max_z-min_z)/2.0;
+    
+    // Velocity
+    fake_object2.velocity.linear.x = 0.5;
+    fake_object2.velocity.linear.y = 0.5;
+    fake_object2.velocity.linear.z = 0.5;
+
+    // Polygon
+    geometry_msgs::PolygonStamped polygon2;
+    polygon2 = fake_object2.convex_hull;
+
+    int seq = 0;
+
+
+
+    while(1){        
+        fake_object1.header = create_header(seq, frame_id);
+        fake_object2.header = fake_object1.header;
+        fake_object_array.objects.clear();
+        fake_object_array.objects.push_back(fake_object1);
+        fake_object_array.objects.push_back(fake_object2);
+        fake_object_array.header = fake_object1.header;
+        polygon1.header = fake_object1.header;
+        polygon2.header = fake_object2.header;
+
+        fake_object_pub.publish(fake_object_array);
+        polygon_pub1.publish(polygon1);
+        polygon_pub2.publish(polygon2);
+        seq++;
+        rate.sleep();
+    }
+    
+
+    return 0;
+}
+
+std_msgs::Header create_header(int seq, std::string frame_id){
+    std_msgs::Header header;
+    header.stamp = ros::Time::now();
+    header.seq = seq;
+    header.frame_id = frame_id;
+    return header;
+}
+
+void init_type_names(){
+    type_names.push_back(std::string("invalid"));
+    type_names.push_back(std::string("bool"));
+    type_names.push_back(std::string("int"));
+    type_names.push_back(std::string("double"));
+    type_names.push_back(std::string("string"));
+    type_names.push_back(std::string("data_time"));
+    type_names.push_back(std::string("base64"));
+    type_names.push_back(std::string("array"));
+    type_names.push_back(std::string("struct"));
+}
+
