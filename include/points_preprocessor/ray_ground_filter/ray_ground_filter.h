@@ -78,6 +78,8 @@ private:
   std::vector<cv::Scalar> colors_;
   const size_t color_num_ = 60;  // different number of color to generate
 
+  int instance_mode_ = 0;
+
   struct PointXYZIRTColor
   {
     pcl::PointXYZI point;
