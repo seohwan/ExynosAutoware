@@ -24,7 +24,6 @@
 #include <geometry_msgs/TwistStamped.h>
 #include <rubis_msgs/PoseStamped.h>
 #include <rubis_msgs/TwistStamped.h>
-#include "autoware_msgs/Lane.h"
 
 // C++ includes
 #include <vector>
