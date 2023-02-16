@@ -64,13 +64,13 @@ add_executable(carla_full_autorunner
 )
 
 add_executable(exynos_carla_lkas_autorunner
-  include/carla_autorunner/exynos_carla_autorunner.h
+  include/carla_autorunner/carla_autorunner.h
   src/carla_autorunner/exynos_carla_lkas_autorunner_node.cpp
   src/carla_autorunner/exynos_carla_lkas_autorunner.cpp
 )
 
 add_executable(exynos_carla_full_autorunner
-  include/carla_autorunner/exynos_carla_autorunner.h
+  include/carla_autorunner/carla_autorunner.h
   src/carla_autorunner/exynos_carla_full_autorunner_node.cpp
   src/carla_autorunner/exynos_carla_full_autorunner.cpp
 )
