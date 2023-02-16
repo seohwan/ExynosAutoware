@@ -125,12 +125,9 @@ protected:
   ros::Subscriber sub_can_info      ;
   ros::Subscriber sub_StepSignal;
 
-  rubis_msgs::DetectedObjectArray objects_msgs_;
-
   // Callback function for subscriber.
   void callbackGetTrackedObjects(const autoware_msgs::DetectedObjectArrayConstPtr& msg);
   void callbackGetRubisTrackedObjects(const rubis_msgs::DetectedObjectArrayConstPtr& msg);
-  void _callbackGetRubisTrackedObjects(rubis_msgs::DetectedObjectArray& objects_msg);
   void callbackGetCurrentPose(const geometry_msgs::PoseStampedConstPtr& msg);
   void callbackGetVehicleStatus(const geometry_msgs::TwistStampedConstPtr& msg);
   void callbackGetCANInfo(const autoware_can_msgs::CANInfoConstPtr &msg);
