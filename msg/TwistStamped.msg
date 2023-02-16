@@ -1,3 +1,2 @@
 uint64 instance
 geometry_msgs/TwistStamped msg
-uint64 obj_instance
