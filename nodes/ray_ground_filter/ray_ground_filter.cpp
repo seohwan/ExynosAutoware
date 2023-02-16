@@ -82,7 +82,7 @@ bool RayGroundFilter::TransformPointCloud(const std::string& in_target_frame,
   return true;
 }
 
-void RayGroundFilter::publish_cloud(const ros::Publisher& in_publisher,
+void RayGroundFilter::publish_rubis_cloud(const ros::Publisher& in_publisher,
                                     const pcl::PointCloud<pcl::PointXYZI>::Ptr in_cloud_to_publish_ptr,
                                     const std_msgs::Header& in_header)
 {
@@ -102,6 +102,28 @@ void RayGroundFilter::publish_cloud(const ros::Publisher& in_publisher,
   rubis_msgs::PointCloud2 msg;
   msg.instance = rubis::instance_;
   msg.msg = *trans_cloud_msg_ptr;
+  in_publisher.publish(msg);
+}
+
+void RayGroundFilter::publish_cloud(const ros::Publisher& in_publisher,
+                                    const pcl::PointCloud<pcl::PointXYZI>::Ptr in_cloud_to_publish_ptr,
+                                    const std_msgs::Header& in_header)
+{
+  sensor_msgs::PointCloud2::Ptr cloud_msg_ptr(new sensor_msgs::PointCloud2);
+  sensor_msgs::PointCloud2::Ptr trans_cloud_msg_ptr(new sensor_msgs::PointCloud2);
+  pcl::toROSMsg(*in_cloud_to_publish_ptr, *cloud_msg_ptr);
+  cloud_msg_ptr->header.frame_id = base_frame_;
+  cloud_msg_ptr->header.stamp = in_header.stamp;
+  const bool succeeded = TransformPointCloud(in_header.frame_id, cloud_msg_ptr, trans_cloud_msg_ptr);
+  if (!succeeded)
+  {
+    ROS_ERROR_STREAM_THROTTLE(10, "Failed transform from " << cloud_msg_ptr->header.frame_id << " to "
+                                                           << in_header.frame_id);
+    return;
+  }
+
+  sensor_msgs::PointCloud2 msg;
+  msg = *trans_cloud_msg_ptr;
   in_publisher.publish(msg);
 }
 
@@ -376,11 +398,9 @@ inline void RayGroundFilter::PublishFilteredClouds(const sensor_msgs::PointCloud
 
   ExtractPointsIndices(filtered_cloud_ptr, *ground_indices, ground_cloud_ptr, no_ground_cloud_ptr);
 
-  publish_cloud(ground_points_pub_, ground_cloud_ptr, in_sensor_cloud->header);
-  publish_cloud(groundless_points_pub_, no_ground_cloud_ptr, in_sensor_cloud->header);
+  publish_cloud(debug_groundless_points_pub_, no_ground_cloud_ptr, in_sensor_cloud->header);
+  publish_rubis_cloud(groundless_points_pub_, no_ground_cloud_ptr, in_sensor_cloud->header);
 
-  if(rubis::sched::is_task_ready_ == TASK_NOT_READY) rubis::sched::init_task();
-  rubis::sched::task_state_ = TASK_STATE_DONE;
 }
 
 void RayGroundFilter::CloudCallback(const sensor_msgs::PointCloud2ConstPtr& in_sensor_cloud)
@@ -391,9 +411,11 @@ void RayGroundFilter::CloudCallback(const sensor_msgs::PointCloud2ConstPtr& in_s
 
 void RayGroundFilter::RubisCloudCallback(const rubis_msgs::PointCloud2ConstPtr in_rubis_cloud)
 {
+  rubis::start_task_profiling();
   sensor_msgs::PointCloud2ConstPtr in_sensor_cloud = boost::make_shared<const sensor_msgs::PointCloud2>(in_rubis_cloud->msg);
   rubis::instance_ = in_rubis_cloud->instance;
   PublishFilteredClouds(in_sensor_cloud);
+  rubis::stop_task_profiling(rubis::instance_, 0);
 }
 
 RayGroundFilter::RayGroundFilter() : node_handle_("~"), tf_listener_(tf_buffer_)
@@ -405,15 +427,6 @@ RayGroundFilter::RayGroundFilter() : node_handle_("~"), tf_listener_(tf_buffer_)
 
 void RayGroundFilter::Run()
 {
-  // Scheduling Setup
-  int task_scheduling_flag;
-  int task_profiling_flag;
-  std::string task_response_time_filename;
-  int rate;
-  double task_minimum_inter_release_time;
-  double task_execution_time;
-  double task_relative_deadline;
-
   // Model   |   Horizontal   |   Vertical   | FOV(Vertical)    degrees / rads
   // ----------------------------------------------------------
   // HDL-64  |0.08-0.35(0.32) |     0.4      |  -24.9 <=x<=2.0   (26.9  / 0.47)
@@ -467,53 +480,33 @@ void RayGroundFilter::Run()
       node_handle_.subscribe("/config/ray_ground_filter", 1, &RayGroundFilter::update_config_params, this);
 
   groundless_points_pub_ = node_handle_.advertise<rubis_msgs::PointCloud2>(no_ground_topic, 2);
-  ground_points_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2>(ground_topic, 2);
+  debug_groundless_points_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2>("/debug_points_no_ground", 2);
   
+  // Scheduling & Profiling Setup
   std::string node_name = ros::this_node::getName();
-  node_handle_.param<int>(node_name+"/task_scheduling_flag", task_scheduling_flag, 0);
-  node_handle_.param<int>(node_name+"/task_profiling_flag", task_profiling_flag, 0);
+  std::string task_response_time_filename;
   node_handle_.param<std::string>(node_name+"/task_response_time_filename", task_response_time_filename, "~/Documents/profiling/response_time/ray_ground_filter.csv");
+
+  int rate;
   node_handle_.param<int>(node_name+"/rate", rate, 10);
-  node_handle_.param(node_name+"/task_minimum_inter_release_time", task_minimum_inter_release_time, (double)10);
-  node_handle_.param(node_name+"/task_execution_time", task_execution_time, (double)10);
-  node_handle_.param(node_name+"/task_relative_deadline", task_relative_deadline, (double)10);
-  node_handle_.param<int>(node_name+"/instance_mode", instance_mode_, 0);
+
+  struct rubis::sched_attr attr;
+  std::string policy;
+  int priority, exec_time ,deadline, period;
+    
+  node_handle_.param(node_name+"/task_scheduling_configs/policy", policy, std::string("NONE"));    
+  node_handle_.param(node_name+"/task_scheduling_configs/priority", priority, 99);
+  node_handle_.param(node_name+"/task_scheduling_configs/exec_time", exec_time, 0);
+  node_handle_.param(node_name+"/task_scheduling_configs/deadline", deadline, 0);
+  node_handle_.param(node_name+"/task_scheduling_configs/period", period, 0);
+  attr = rubis::create_sched_attr(priority, exec_time, deadline, period);    
+  rubis::init_task_scheduling(policy, attr);
+
+  rubis::init_task_profiling(task_response_time_filename);
 
   points_node_sub_ = node_handle_.subscribe("/rubis_"+input_point_topic_.substr(1), 1, &RayGroundFilter::RubisCloudCallback, this);
 
   ROS_INFO("Ready");
 
-  /* For Task scheduling */
-  if(task_profiling_flag) rubis::sched::init_task_profiling(task_response_time_filename);
-
-  if(!task_scheduling_flag && !task_profiling_flag){
-    ros::spin();
-  }
-  else{
-    ros::Rate r(rate);    
-    while(ros::ok()){
-      if(rubis::sched::is_task_ready_) break;
-      ros::spinOnce();
-      r.sleep();      
-    }
-
-    // Executing task
-    while(ros::ok()){
-      if(task_profiling_flag) rubis::sched::start_task_profiling();
-      if(rubis::sched::task_state_ == TASK_STATE_READY){        
-        if(task_scheduling_flag) rubis::sched::request_task_scheduling(task_minimum_inter_release_time, task_execution_time, task_relative_deadline); 
-        rubis::sched::task_state_ = TASK_STATE_RUNNING;     
-      }
-
-      ros::spinOnce();
-
-      if(task_profiling_flag) rubis::sched::stop_task_profiling(rubis::instance_, rubis::sched::task_state_);
-      if(rubis::sched::task_state_ == TASK_STATE_DONE){
-        if(task_scheduling_flag) rubis::sched::yield_task_scheduling();
-        rubis::sched::task_state_ = TASK_STATE_READY;
-      }
-      
-      r.sleep();
-    }
-  }
+  ros::spin();
 }
