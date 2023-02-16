@@ -20,7 +20,7 @@
     <arg name="goal_ori_w"            value="0.02" /> -->
 
     <!-- Town04 circle -->
-    <arg name="use_static_goal"       value="true" />
+    <arg name="use_static_goal"       value="false" />
     <arg name="goal_pose_x"           value="302.250" />
     <arg name="goal_pose_y"           value="118.089" />
     <arg name="goal_pose_z"           value="0.0" />
@@ -71,7 +71,7 @@
   <!-- op_trajectory_generator -->
   <include file="$(find op_local_planner)/launch/op_trajectory_generator.launch">
     <arg name="samplingTipMargin"               default="4"  />       <!-- Tip Margin -->
-    <arg name="samplingOutMargin"               default="8" />        <!-- Roll In Margin -->
+    <arg name="samplingOutMargin"               default="20" />        <!-- Roll In Margin -->
     <arg name="samplingSpeedFactor"             default="0.25" />    
     <arg name="enableHeadingSmoothing"          default="false" />
   </include>
@@ -94,7 +94,7 @@
 
   <!-- op_trajectory_evaluator -->
   <include file="$(find op_local_planner)/launch/op_trajectory_evaluator_parameter.launch">
-    <arg name="enableDebug"      default="0" />
+    <arg name="enableDebug"      default="1" />
 
     <arg name="enablePrediction"                default="false" />                
     <arg name="horizontalSafetyDistance"        default="1.2" />
@@ -102,7 +102,7 @@
     <arg name="LateralSkipDistance"             default="5.0" />  
 
     <!-- Trajectory blocking threshold  -->
-    <arg name="lateralBlockingThreshold"           default="0.0" />
+    <arg name="lateralBlockingThreshold"           default="0.5" />
     <arg name="frontLongitudinalBlockingThreshold"      default="30" />
     <arg name="rearLongitudinalBlockingThreshold"      default="-5" />
 
