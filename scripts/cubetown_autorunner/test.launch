@@ -1,5 +1,5 @@
 <launch>
-  <rosparam command="load" file="$(env USER_HOME)/rubis_ws/src/rubis_autorunner/cfg/cubetown_autorunner/cubetown_autorunner_params.yaml" />
+  <rosparam command="load" file="$(find rubis_autorunner)/cfg/cubetown_autorunner/cubetown_autorunner_params.yaml" />
 
   <!-- cubetown -->
   <arg name="init_x" value="57.1" />
