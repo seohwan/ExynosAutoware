@@ -65,6 +65,7 @@ TrajectoryEval::TrajectoryEval()
 
   sub_GlobalPlannerPaths = nh.subscribe("/lane_waypoints_array", 1, &TrajectoryEval::callbackGetGlobalPlannerPath, this);
   sub_LocalPlannerPaths = nh.subscribe("/local_trajectories_with_pose_twist", 1, &TrajectoryEval::callbackGetLocalPlannerPath, this);
+  // sub_predicted_objects = nh.subscribe("/predicted_objects", 1, &TrajectoryEval::callbackGetPredictedObjects, this);
   sub_predicted_objects = nh.subscribe("/rubis_predicted_objects", 1, &TrajectoryEval::callbackGetPredictedObjects, this);
   sub_current_behavior = nh.subscribe("/current_behavior", 1, &TrajectoryEval::callbackGetBehaviorState, this);
 
@@ -383,10 +384,12 @@ void TrajectoryEval::callbackGetPredictedObjects(const rubis_msgs::DetectedObjec
   object_msg_ = msg->object_array;
   rubis::obj_instance_ = msg->obj_instance;
   is_objects_updated_ = true;
+  // _callbackGetPredictedObjects(object_msg_);
 }
 
 void TrajectoryEval::_callbackGetPredictedObjects(const autoware_msgs::DetectedObjectArray& objects_msg){
   m_PredictedObjects.clear();
+  // ROS_WARN("callbackGetPredictedObjects Called");
   bPredictedObjects = true;
   double distance_to_pedestrian = 1000;
   int image_person_detection_range_left = m_ImageWidth/2 - m_ImageWidth*m_PedestrianImageDetectionRange/2;
@@ -464,12 +467,17 @@ void TrajectoryEval::_callbackGetPredictedObjects(const autoware_msgs::DetectedO
     int image_obj_center_x = msg_obj.x+msg_obj.width/2;
     int image_obj_center_y = msg_obj.y+msg_obj.height/2;
     if (msg_obj.label == "person"){// If person is detected only in image
-      
+      ROS_WARN("==========================================");
+      ROS_WARN("person detected!");
+      ROS_WARN("==========================================");
       if(image_obj_center_x >= image_person_detection_range_left && image_obj_center_x <= image_person_detection_range_right){ 
         double temp_x_distance = 1000;
         if(msg_obj.height >= m_pedestrian_stop_img_height_threshold) temp_x_distance = 10;
         if(abs(temp_x_distance) < abs(distance_to_pedestrian)) distance_to_pedestrian = temp_x_distance;
       }
+      ROS_WARN("==========================================");
+      ROS_WARN("distance_to_pedestrian: %lf", distance_to_pedestrian);
+      ROS_WARN("==========================================");
     }
   }
 
