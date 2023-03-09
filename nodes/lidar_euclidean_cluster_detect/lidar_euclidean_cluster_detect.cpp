@@ -229,11 +229,16 @@ void publishDetectedObjects(const autoware_msgs::CloudClusterArray &in_clusters)
   _pub_detected_objects.publish(detected_objects);
 
   rubis_detected_objects.instance = rubis::instance_;
-  rubis_detected_objects.instance = rubis::obj_instance_;
   rubis_detected_objects.object_array = detected_objects;
   
   _pub_rubis_detected_objects.publish(rubis_detected_objects);
   
+  if(rubis::sched::is_task_ready_ == TASK_NOT_READY){
+    rubis::sched::init_task();
+    if(rubis::sched::gpu_profiling_flag_) rubis::sched::start_gpu_profiling();
+  }
+  
+  rubis::sched::task_state_ = TASK_STATE_DONE;
 }
 
 void publishCloudClusters(const ros::Publisher *in_publisher, const autoware_msgs::CloudClusterArray &in_clusters,
@@ -850,9 +855,7 @@ void removePointsUpTo(const pcl::PointCloud<pcl::PointXYZ>::Ptr in_cloud_ptr,
 
 void velodyne_callback(const rubis_msgs::PointCloud2ConstPtr& in_sensor_cloud)
 {
-  rubis::start_task_profiling();        
   rubis::instance_ = in_sensor_cloud->instance;
-  rubis::obj_instance_ = in_sensor_cloud->instance;
   //_start = std::chrono::system_clock::now();  
   if (!_using_sensor_cloud)
   {
@@ -928,10 +931,7 @@ void velodyne_callback(const rubis_msgs::PointCloud2ConstPtr& in_sensor_cloud)
 
     _using_sensor_cloud = false;
   }
-
-  rubis::stop_task_profiling(rubis::instance_, 0);
 }
-
 int main(int argc, char **argv)
 {
   // Initialize ROS
@@ -940,27 +940,33 @@ int main(int argc, char **argv)
   ros::NodeHandle h;
   ros::NodeHandle private_nh("~");
 
-  // Scheduling & Profiling Setup
-  std::string node_name = ros::this_node::getName();
+  // Scheduling Setup
+  int task_scheduling_flag;
+  int task_profiling_flag;
   std::string task_response_time_filename;
-  private_nh.param<std::string>(node_name+"/task_response_time_filename", task_response_time_filename, "~/Documents/profiling/response_time/lidar_euclidean_cluster_detect.csv");
-
   int rate;
-  private_nh.param<int>(node_name+"/rate", rate, 10);
+  double task_minimum_inter_release_time;
+  double task_execution_time;
+  double task_relative_deadline; 
 
-  struct rubis::sched_attr attr;
-  std::string policy;
-  int priority, exec_time ,deadline, period;
-    
-  private_nh.param(node_name+"/task_scheduling_configs/policy", policy, std::string("NONE"));    
-  private_nh.param(node_name+"/task_scheduling_configs/priority", priority, 99);
-  private_nh.param(node_name+"/task_scheduling_configs/exec_time", exec_time, 0);
-  private_nh.param(node_name+"/task_scheduling_configs/deadline", deadline, 0);
-  private_nh.param(node_name+"/task_scheduling_configs/period", period, 0);
-  attr = rubis::create_sched_attr(priority, exec_time, deadline, period);    
-  rubis::init_task_scheduling(policy, attr);
+  int gpu_scheduling_flag;
+  int gpu_profiling_flag;
+  std::string gpu_execution_time_filename;
+  std::string gpu_response_time_filename;
+  std::string gpu_deadline_filename;
 
-  rubis::init_task_profiling(task_response_time_filename);
+  private_nh.param<int>("/lidar_euclidean_cluster_detect/task_scheduling_flag", task_scheduling_flag, 0);
+  private_nh.param<int>("/lidar_euclidean_cluster_detect/task_profiling_flag", task_profiling_flag, 0);
+  private_nh.param<std::string>("/lidar_euclidean_cluster_detect/task_response_time_filename", task_response_time_filename, "~/Documents/profiling/response_time/lidar_euclidean_cluster_detect.csv");
+  private_nh.param<int>("/lidar_euclidean_cluster_detect/rate", rate, 10);
+  private_nh.param("/lidar_euclidean_cluster_detect/task_minimum_inter_release_time", task_minimum_inter_release_time, (double)10);
+  private_nh.param("/lidar_euclidean_cluster_detect/task_execution_time", task_execution_time, (double)10);
+  private_nh.param("/lidar_euclidean_cluster_detect/task_relative_deadline", task_relative_deadline, (double)10);
+  private_nh.param("/lidar_euclidean_cluster_detect/gpu_scheduling_flag", gpu_scheduling_flag, 0);
+  private_nh.param("/lidar_euclidean_cluster_detect/gpu_profiling_flag", gpu_profiling_flag, 0);
+  private_nh.param<std::string>("/lidar_euclidean_cluster_detect/gpu_execution_time_filename", gpu_execution_time_filename, "~/Documents/gpu_profiling/test_clustering_execution_time.csv");
+  private_nh.param<std::string>("/lidar_euclidean_cluster_detect/gpu_response_time_filename", gpu_response_time_filename, "~/Documents/gpu_profiling/test_clustering_response_time.csv");
+  private_nh.param<std::string>("/lidar_euclidean_cluster_detect/gpu_deadline_filename", gpu_deadline_filename, "~/Documents/gpu_deadline/cluster_gpu_deadline.csv");
 
   tf::StampedTransform transform;
   tf::TransformListener listener;
@@ -971,6 +977,8 @@ int main(int argc, char **argv)
   _transform_listener = &listener;
 
   generateColors(_colors, 255);
+
+  if(task_profiling_flag) rubis::sched::init_task_profiling(task_response_time_filename);
 
   std::string label;
   std::string output_lane_str;
@@ -1103,8 +1111,40 @@ int main(int argc, char **argv)
 
   // Create a ROS subscriber for the input point cloud
   ros::Subscriber sub = h.subscribe(points_topic, 1, velodyne_callback);
-  
-  ros::spin();
+
+  if(!task_scheduling_flag && !task_profiling_flag){
+    ros::spin();
+  }
+  else{
+    ros::Rate r(rate);
+    // Initialize task ( Wait until first necessary topic is published )
+    while(ros::ok()){      
+      ros::spinOnce();
+      r.sleep();      
+      if(rubis::sched::is_task_ready_) break;
+    }
+
+    // Executing task
+    while(ros::ok()){
+      if(task_profiling_flag) rubis::sched::start_task_profiling();        
+      if(rubis::sched::task_state_ == TASK_STATE_READY){
+        if(task_scheduling_flag) rubis::sched::request_task_scheduling(task_minimum_inter_release_time, task_execution_time, task_relative_deadline); 
+        if(gpu_profiling_flag || gpu_scheduling_flag) rubis::sched::start_job();
+        rubis::sched::task_state_ = TASK_STATE_RUNNING;     
+      }
+
+      ros::spinOnce();
+
+      if(task_profiling_flag) rubis::sched::stop_task_profiling(rubis::instance_, rubis::sched::task_state_);
+      if(rubis::sched::task_state_ == TASK_STATE_DONE){
+        if(gpu_profiling_flag || gpu_scheduling_flag) rubis::sched::finish_job();        
+        if(task_scheduling_flag) rubis::sched::yield_task_scheduling();
+        rubis::sched::task_state_ = TASK_STATE_READY;
+      }
+      
+      r.sleep();
+    }
+  }
 
   return 0;
 }
