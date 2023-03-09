@@ -54,8 +54,6 @@
     <arg name="speedProfileFactor"              default="1.2"  />
     <arg name="smoothingDataWeight"             default="0.45"  />
     <arg name="smoothingSmoothWeight"           default="0.4"  />  
-    <arg name="enableSlowDownOnCurve"           default="false" />
-    <arg name="curveVelocityRatio"           default="1.0" />
   </include>
 
   <!-- op_trajectory_generator -->
@@ -84,17 +82,10 @@
 
   <!-- op_trajectory_evaluator -->
   <include file="$(find op_local_planner)/launch/op_trajectory_evaluator_parameter.launch">
-    <arg name="enableDebug"      default="0" />
-
     <arg name="enablePrediction"                default="false" />                
     <arg name="horizontalSafetyDistance"        default="1.2" />
     <arg name="verticalSafetyDistance"          default="0.8" />
     <arg name="LateralSkipDistance"             default="5.0" />  
-
-    <!-- Trajectory blocking threshold  -->
-    <arg name="lateralBlockingThreshold"           default="1.5" />
-    <arg name="frontLongitudinalBlockingThreshold"      default="30" />
-    <arg name="rearLongitudinalBlockingThreshold"      default="-5" />
 
     <arg name="intersectionFile"                default="crossing_test/crossing_intersection.yaml" />
   </include>

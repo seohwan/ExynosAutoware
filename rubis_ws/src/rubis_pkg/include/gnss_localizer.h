@@ -19,7 +19,6 @@
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
 #include <eigen3/Eigen/Eigen>
-#include <rubis_lib/sched.hpp>
 
 namespace gnss_localizer
 {
