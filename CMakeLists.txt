@@ -1,96 +1,161 @@
-cmake_minimum_required(VERSION 2.8.11)
-project(amathutils_lib) # autoware math utility
+cmake_minimum_required(VERSION 2.8.12)
+
+project(object_map)
 
 find_package(autoware_build_flags REQUIRED)
 
-find_package(Eigen3 REQUIRED)
-
-if (NOT EIGEN3_FOUND)
-    # Fallback to cmake_modules
-    find_package(cmake_modules REQUIRED)
-    find_package(Eigen REQUIRED)
-    set(EIGEN3_INCLUDE_DIRS ${EIGEN_INCLUDE_DIRS})
-    set(EIGEN3_LIBRARIES ${EIGEN_LIBRARIES})  # Not strictly necessary as Eigen is head only
-    # Possibly map additional variables to the EIGEN3_ prefix.
-else ()
-    set(EIGEN3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
-endif ()
-
 find_package(catkin REQUIRED COMPONENTS
   autoware_msgs
+  grid_map_cv
+  grid_map_msgs
+  grid_map_ros
+  nav_msgs
+  pcl_conversions
+  pcl_ros
   roscpp
   roslint
+  sensor_msgs
   tf
-  tf2
+  vector_map
 )
 
-set(CMAKE_CXX_FLAGS "-O2 -Wall ${CMAKE_CXX_FLAGS}")
+# TODO add other files into roslint
+set(ROSLINT_CPP_OPTS "--filter=-build/c++14")
+
+find_package(Qt5Core REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(PCL REQUIRED)
+find_package(OpenMP)
+
+if (OPENMP_FOUND)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif ()
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES amathutils_lib
+  LIBRARIES object_map_utils_lib
   CATKIN_DEPENDS
-    autoware_msgs
+    pcl_ros
+    pcl_conversions
     tf
-    tf2
+    sensor_msgs
+    nav_msgs
+    autoware_msgs
+    grid_map_msgs
+    vector_map
 )
+
+set(CMAKE_CXX_FLAGS "-O2 -g -Wall ${CMAKE_CXX_FLAGS}")
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
+)
+### object_map_utils ###
+add_library(object_map_utils_lib
+  include/object_map/object_map_utils.cpp
+  include/object_map/object_map_utils.hpp
+)
+target_link_libraries(object_map_utils_lib
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
 )
 
-add_library(amathutils_lib
-  src/Amathutils.cpp
-  src/kalman_filter.cpp
-  src/time_delay_kalman_filter.cpp
-  src/butterworth_filter.cpp
+### laserscan2costmap ###
+add_executable(laserscan2costmap
+  nodes/laserscan2costmap/laserscan2costmap.cpp
 )
-target_link_libraries(amathutils_lib
+
+target_link_libraries(laserscan2costmap
   ${catkin_LIBRARIES}
 )
 
-add_dependencies(amathutils_lib
+
+### potential_field ###
+add_executable(potential_field
+  nodes/potential_field/potential_field.cpp
+)
+add_dependencies(potential_field
   ${catkin_EXPORTED_TARGETS}
 )
-
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.hpp"
+target_link_libraries(potential_field
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
 )
 
-install(TARGETS amathutils_lib
+### grid_map_filter ###
+add_library(grid_map_filter_lib
+  nodes/grid_map_filter/grid_map_filter.h
+  include/object_map/object_map_utils.hpp
+  nodes/grid_map_filter/grid_map_filter.cpp
+)
+target_link_libraries(grid_map_filter_lib
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+  object_map_utils_lib
+)
+add_executable(grid_map_filter
+  nodes/grid_map_filter/grid_map_filter_node.cpp
+  nodes/grid_map_filter/grid_map_filter.h
+)
+target_link_libraries(grid_map_filter
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+  object_map_utils_lib
+  grid_map_filter_lib
+)
+
+### wayarea2grid ###
+add_library(wayarea2grid_lib
+  nodes/wayarea2grid/wayarea2grid.h
+  include/object_map/object_map_utils.hpp
+  nodes/wayarea2grid/wayarea2grid.cpp
+)
+target_link_libraries(wayarea2grid_lib
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+  object_map_utils_lib
+)
+
+add_executable(wayarea2grid
+  nodes/wayarea2grid/wayarea2grid.h
+  nodes/wayarea2grid/wayarea2grid_node.cpp
+)
+
+target_link_libraries(wayarea2grid
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+  wayarea2grid_lib
+)
+      
+install(
+  TARGETS
+    wayarea2grid
+    wayarea2grid_lib
+    grid_map_filter_lib
+    grid_map_filter
+    potential_field
+    laserscan2costmap
+    object_map_utils_lib
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-file(GLOB_RECURSE ROSLINT_FILES
-  LIST_DIRECTORIES false
-  *.cpp *.h *.hpp
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+)
+        
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.hpp"
 )
 
-list(APPEND ROSLINT_CPP_OPTS "--extensions=cc,h,hpp,cpp,cu,cuh" "--filter=-build/c++11,-runtime/references")
-roslint_cpp(${ROSLINT_FILES})
+install(DIRECTORY config/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
+)
 
-if(CATKIN_ENABLE_TESTING)
-  find_package(rostest REQUIRED)
-  add_rostest_gtest(amathutils-test test/test_amathutils_lib.test test/src/test_amathutils_lib.cpp)
-  target_link_libraries(amathutils-test ${catkin_LIBRARIES} amathutils_lib)
-  add_rostest_gtest(test-kalman_filter 
-    test/test_kalman_filter.test
-    test/src/test_kalman_filter.cpp
-    src/kalman_filter.cpp
-    src/time_delay_kalman_filter.cpp
-  )
-  target_link_libraries(test-kalman_filter ${catkin_LIBRARIES})
-
-  add_rostest_gtest(test-butterworth_filter 
-    test/test_butterworth_filter.test
-    test/src/test_butterworth_filter.cpp
-    src/butterworth_filter.cpp
-  )
-  target_link_libraries(test-butterworth_filter ${catkin_LIBRARIES})
+if (CATKIN_ENABLE_TESTING)
   roslint_add_test()
 endif()
