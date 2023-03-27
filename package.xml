@@ -1,17 +1,15 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>map_tf_generator</name>
+  <name>log_tools</name>
   <version>1.12.0</version>
-  <description>The map_tf_generator package</description>
-  <maintainer email="azumi.suzuki@tier4.jp">azumi-suzuki</maintainer>
+  <description>The log_tools package</description>
+  <maintainer email="akihito.ohsato@tier4.jp">Akihito Ohsato</maintainer>
+  <author email="akihito.ohsato@tier4.jp">Akihito Ohsato</author>
   <license>Apache 2</license>
 
   <buildtool_depend>autoware_build_flags</buildtool_depend>
   <buildtool_depend>catkin</buildtool_depend>
 
-  <depend>roscpp</depend>
-  <depend>std_msgs</depend>
-  <depend>tf</depend>
-
-  <exec_depend>pcl_ros</exec_depend>
+  <exec_depend>python-flask</exec_depend>
+  <exec_depend>rospy</exec_depend>
 </package>
