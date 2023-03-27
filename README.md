@@ -1,31 +1,17 @@
-# Map Tools
+# Autoware Launcher
 
-A set of utility tools for map data
+Autoware Launcher is designed to help users and developers to launch sets of nodes and its parameters. Sets are stored in profile files (in YAML format) that can be shared with other users, or used to quickly launch different set-ups.
 
-## PCD Grid Divider
-`PCD Grid Divider` creates PCDs divided into grids from PCDs that are not divided into grids.
+![autoware_launcher_1](./documents/demos/images/rosbag02.png)
+![autoware_launcher_2](./documents/demos/images/rosbag05.png)
 
-### How to launch
-* From a sourced terminal:\
-`rosrun map_tools pcd_grid_divider point_type grid_size output_directory input_pcd1 input_pcd2 ...`
+## Demos
 
-``point_type``: PointXYZ | PointXYZI | PointXYZRGB
+* [Rosbag Demo](./documents/demos/rosbag.md)
 
-``grid_size``: integer (1,5,10,100...)
+## Develop
 
-In the directory you specified, you will see PCDs that divided into grids.
-The naming rule is ``*grid_size*_*lower bound of x*_*lower bound of y*.pcd``
-
-## PCD Filter
-`PCD Filter` downsamples PCDs by voxel grid filter.
-
-### How to launch
-* From a sourced termina:\
-`rosrun map_tools pcd_filter point_type leaf_size input_pcd1 input_pcd2 ...`
-
-``point_type``: PointXYZ | PointXYZI | PointXYZRGB
-
-``leaf_size``: double (1,5,10,100...)
-
-The downsampled files are saved in the same directory as the input pcd file.
-The naming rule is ``*leaf_size*_*original_name*``
+Developer mode contains advanced features that allow to customize the profiles. However, this mode is still under heavy development and not widely tested. Please be advised of its instability while using it.
+* [Developer Mode](./documents/dev/devmode.md)
+* [Create Plugin File](./documents/plugin/create.md)
+* [Plugin File Format](./documents/plugin/format.md)
