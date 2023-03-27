@@ -1,4 +1,0 @@
-<launch>
-    <rosparam file="$(find rubis_logger)/cfg/logger_brake_dist.yaml" />
-    <node pkg="rubis_logger" type="logger_brake_dist" name="logger_brake_dist" />
-</launch>

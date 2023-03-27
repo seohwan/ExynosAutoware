@@ -1,2 +1,0 @@
-- setup-file:
-    local-name: /home/bkpark/autoware.ai/src/autoware/core_perception/vision_darknet_detect/src/devel/setup.sh
