@@ -1,62 +1,38 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(image_processor)
+project(vision_lane_detect)
 
-find_package(autoware_build_flags REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
+  autoware_msgs
   cv_bridge
+  image_transport
   roscpp
-  sensor_msgs
 )
-
-catkin_package(CATKIN_DEPENDS
-  sensor_msgs
-  cv_bridge
-)
-
 find_package(OpenCV REQUIRED)
+find_package(OpenGL REQUIRED)
+
+catkin_package()
 
 include_directories(
-  include
   ${catkin_INCLUDE_DIRS}
+  nodes/vision_lane_detect
+  ${OpenCV_INCLUDE_DIRS}
 )
 
-SET(CMAKE_CXX_FLAGS "-O2 -g -Wall ${CMAKE_CXX_FLAGS}")
-
-#Image rotator
-add_executable(image_rotator
-  nodes/image_rotator/image_rotator_node.cpp
+add_executable(vision_lane_detect
+  nodes/vision_lane_detect/vision_lane_detect.cpp
 )
 
-target_include_directories(image_rotator PRIVATE
-  ${OpenCV_INCLUDE_DIR}
-)
-
-target_link_libraries(image_rotator
+target_link_libraries(vision_lane_detect
   ${catkin_LIBRARIES}
-  ${OpenCV_LIBS}
+  ${OpenCV_LIBRARIES}
+  ${OPENGL_LIBRARIES}
+)
+add_dependencies(vision_lane_detect
+  ${catkin_EXPORTED_TARGETS}
 )
 
-#Image rectifier
-add_executable(image_rectifier
-  nodes/image_rectifier/image_rectifier_node.cpp
-)
-
-target_include_directories(image_rectifier PRIVATE
-  ${OpenCV_INCLUDE_DIR}
-)
-
-target_link_libraries(image_rectifier
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBS}
-)
-
-install(TARGETS image_rotator image_rectifier
+install(TARGETS vision_lane_detect
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(DIRECTORY launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-  PATTERN ".svn" EXCLUDE
 )
