@@ -1,4 +1,6 @@
 build
-devel
-*.pyc
-.vscode
+install
+log
+build/*
+install/*
+log/*
