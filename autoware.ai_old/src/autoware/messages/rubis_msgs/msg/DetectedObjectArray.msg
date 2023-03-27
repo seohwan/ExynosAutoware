@@ -1,2 +1,0 @@
-uint64 instance
-autoware_msgs/DetectedObjectArray object_array
