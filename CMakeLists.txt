@@ -1,46 +1,44 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(autoware_launcher_rviz)
+project(calibration_publisher)
 
-find_package(catkin REQUIRED COMPONENTS rosconsole rviz autoware_build_flags)
-find_package(Qt5 ${rviz_QT_VERSION} EXACT REQUIRED Core Widgets Network)
-set(QT_LIBRARIES Qt5::Widgets Qt5::Network)
-add_definitions(-DQT_NO_KEYWORDS)
-
-catkin_package(
-  CATKIN_DEPENDS rviz
+find_package(autoware_build_flags REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  autoware_msgs
+  cv_bridge
+  image_transport
+  roscpp
+  sensor_msgs
+  std_msgs
+  tf
 )
+
+find_package(OpenCV REQUIRED)
+find_package(yaml-cpp REQUIRED)
+
+catkin_package()
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
+  ${YAML_CPP_INCLUDE_DIRS}
 )
 
-qt5_wrap_cpp(QT_HEADER_FILES
-  src/module_panel.hpp
+add_executable(calibration_publisher
+  src/calibration_publisher.cpp
 )
 
-set(QT_SOURCE_FILES
-  src/module_panel.cpp
+add_dependencies(calibration_publisher
+  ${catkin_EXPORTED_TARGETS}
 )
 
-add_library(${PROJECT_NAME}
-  ${QT_HEADER_FILES}
-  ${QT_SOURCE_FILES}
-)
-
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(calibration_publisher
   ${catkin_LIBRARIES}
-  ${QT_LIBRARIES}
+  ${OpenCV_LIBS}
+  ${YAML_CPP_LIBRARIES}
 )
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS calibration_publisher
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-
-install(FILES plugin_description.xml
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
-
-install(DIRECTORY icons
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/icons
-)
-
