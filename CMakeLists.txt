@@ -1,143 +1,78 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(lidar_euclidean_cluster_detect)
+project(vel_pose_diff_checker)
 
-if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
-  add_definitions(-D__aarch64__)
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(CMAKE_CXX_STANDARD 14)
 endif()
+
+find_package(catkin REQUIRED COMPONENTS
+  amathutils_lib
+  autoware_health_checker
+  autoware_msgs
+  autoware_system_msgs
+  geometry_msgs
+  roscpp
+  roslint
+  std_msgs
+  tf
+)
 
 find_package(autoware_build_flags REQUIRED)
 
-find_package(catkin REQUIRED COMPONENTS
-  autoware_msgs
-  geometry_msgs
-  grid_map_cv
-  grid_map_msgs
-  grid_map_ros
-  jsk_rviz_plugins
-  pcl_ros
-  roscpp
-  sensor_msgs
-  std_msgs
-  tf
-  vector_map_server
-  rubis_lib
-  rubis_msgs
-)
-
-find_package(OpenMP)
-find_package(OpenCV REQUIRED)
-
-set(CMAKE_CXX_FLAGS "-O2 -Wall ${CMAKE_CXX_FLAGS}")
-
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS
-    vector_map_server
-    grid_map_ros
-    grid_map_cv
-    grid_map_msgs
-    jsk_rviz_plugins
-    rubis_lib
 )
-
-# Resolve system dependency on yaml-cpp, which apparently does not
-# provide a CMake find_package() module.
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(YAML_CPP REQUIRED yaml-cpp)
-find_path(YAML_CPP_INCLUDE_DIR NAMES yaml_cpp.h PATHS ${YAML_CPP_INCLUDE_DIRS})
-find_library(YAML_CPP_LIBRARY NAMES YAML_CPP PATHS ${YAML_CPP_LIBRARY_DIRS})
-link_directories(${YAML_CPP_LIBRARY_DIRS})
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
-)
-link_directories(${OpenCV_LIBRARY_DIRS})
-
-#Euclidean Cluster
-add_executable(lidar_euclidean_cluster_detect
-  nodes/lidar_euclidean_cluster_detect/lidar_euclidean_cluster_detect.cpp
-  nodes/lidar_euclidean_cluster_detect/cluster.cpp
 )
 
-find_package(CUDA)
-find_package(Eigen3 QUIET)
+add_executable(${PROJECT_NAME}
+  src/vel_pose_diff_checker_node.cpp
+  src/vel_pose_diff_checker_core.cpp
+  src/value_time_queue.cpp
+)
 
-AW_CHECK_CUDA()
-if(USE_CUDA)
-  
-  add_definitions(-DGPU_CLUSTERING)
-
-  message("-- USING ACCELERATED CLUSTERING --")
-  message("Version: " ${CUDA_VERSION})
-  message("Library: " ${CUDA_CUDA_LIBRARY})
-  message("Runtime: " ${CUDA_CUDART_LIBRARY})
-  target_compile_definitions(lidar_euclidean_cluster_detect PRIVATE
-    GPU_CLUSTERING=1
-  )
-
-  cuda_add_library(gpu_euclidean_clustering
-    include/gpu_euclidean_clustering.h
-    nodes/lidar_euclidean_cluster_detect/gpu_euclidean_clustering.cu
-  )
-
-  target_link_libraries(gpu_euclidean_clustering
-    ${catkin_LIBRARIES}
-  )
-endif()
-
-if(USE_CUDA)
-  target_link_libraries(lidar_euclidean_cluster_detect
-    ${OpenCV_LIBRARIES}
-    ${catkin_LIBRARIES}
-    ${YAML_CPP_LIBRARIES}
-    gpu_euclidean_clustering
-  )
-
-  install(TARGETS
-    gpu_euclidean_clustering
-    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  )
-else()
-  target_link_libraries(lidar_euclidean_cluster_detect
-    ${OpenCV_LIBRARIES}
-    ${catkin_LIBRARIES}
-    ${YAML_CPP_LIBRARIES}
-  )
-
-  install(TARGETS
-    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  )
-endif()
-
-add_dependencies(lidar_euclidean_cluster_detect
+add_dependencies(${PROJECT_NAME}
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
 )
 
-if(OPENMP_FOUND)
-  set_target_properties(lidar_euclidean_cluster_detect PROPERTIES
-    COMPILE_FLAGS ${OpenMP_CXX_FLAGS}
-    LINK_FLAGS ${OpenMP_CXX_FLAGS}
-  )
-endif()
-
-install(DIRECTORY include/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
 )
 
-install(TARGETS
-  lidar_euclidean_cluster_detect
+install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-install(DIRECTORY launch config
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
   PATTERN ".svn" EXCLUDE
 )
+
+install(DIRECTORY config/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
+  PATTERN ".svn" EXCLUDE
+)
+
+set(ROSLINT_CPP_OPTS "--filter=-build/c++14")
+roslint_cpp()
+
+if(CATKIN_ENABLE_TESTING)
+  roslint_add_test()
+
+  find_package(rostest REQUIRED)
+  add_rostest_gtest(
+    vel_pose_diff_checker-test
+    test/test_vel_pose_diff_checker.test
+    test/src/test_vel_pose_diff_checker.cpp
+    src/vel_pose_diff_checker_core.cpp
+    src/value_time_queue.cpp
+  )
+  target_link_libraries(vel_pose_diff_checker-test ${catkin_LIBRARIES})
+endif()

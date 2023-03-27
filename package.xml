@@ -1,26 +1,22 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>lidar_euclidean_cluster_detect</name>
+  <name>vel_pose_diff_checker</name>
   <version>1.12.0</version>
-  <description>The lidar_euclidean_cluster_detect package</description>
-  <maintainer email="abrahammonrroy@yahoo.com">amc</maintainer>
-  <license>Apache 2</license>
+  <description>The vel_pose_diff_checker package</description>
+  <maintainer email="yamato.ando@gmail.com">YamatoAndo</maintainer>
+  <license>Apache 2.0</license>
 
-  <buildtool_depend>autoware_build_flags</buildtool_depend>
   <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>autoware_build_flags</buildtool_depend>
 
-  <depend>autoware_msgs</depend>
-  <depend>geometry_msgs</depend>
-  <depend>grid_map_cv</depend>
-  <depend>grid_map_msgs</depend>
-  <depend>grid_map_ros</depend>
-  <depend>jsk_rviz_plugins</depend>
-  <depend>pcl_ros</depend>
   <depend>roscpp</depend>
-  <depend>sensor_msgs</depend>
-  <depend>std_msgs</depend>
   <depend>tf</depend>
-  <depend>vector_map_server</depend>
-  <depend>rubis_lib</depend>
-  <depend>rubis_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>autoware_msgs</depend>
+  <depend>autoware_system_msgs</depend>
+  <depend>amathutils_lib</depend>
+  <depend>autoware_health_checker</depend>
+  <depend>roslint</depend>
+
 </package>
