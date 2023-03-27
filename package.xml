@@ -1,21 +1,19 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>runtime_manager</name>
+  <name>autoware_bag_tools</name>
   <version>1.12.0</version>
-  <description>The runtime_manager package</description>
-  <maintainer email="kondoh@axe-inc.co.jp">Masao KONDOH</maintainer>
+  <description>Autoware modified bag_tools; ROS tools and scripts related to bagfiles</description>
+  <maintainer email="jacob.lambert@tier4.jp">Jacob Lambert</maintainer>
+  <author>Jacob Lambert</author>
   <license>Apache 2</license>
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <depend>autoware_config_msgs</depend>
-  <depend>autoware_msgs</depend>
-  <depend>rospy</depend>
-  <depend>std_msgs</depend>
-  <depend>tablet_socket_msgs</depend>
+  <build_depend>cmake_modules</build_depend>
 
-  <exec_depend>nmea_navsat_driver</exec_depend>
-  <exec_depend>python-psutil</exec_depend>
-  <exec_depend>uvc_camera</exec_depend>
-  <exec_depend>velodyne</exec_depend>
+  <depend>nmea_msgs</depend>
+  <depend>rosbag</depend>
+  <depend>roslib</depend>
+  <depend>rospy</depend>
+  <depend>tinyxml</depend>
 </package>
