@@ -45,32 +45,33 @@ TwistGate::TwistGate(const ros::NodeHandle& nh, const ros::NodeHandle& private_n
   , timeout_period_(10.0)
   , command_mode_(CommandMode::AUTO)
   , previous_command_mode_(CommandMode::AUTO)
+  , rubis_twist_cmd_ptr_(NULL)
+  , current_time_(0)
+  , is_current_time_changed_(false)
 {
   private_nh_.param<double>("loop_rate", loop_rate_, 30.0);
   private_nh_.param<bool>("use_decision_maker", use_decision_maker_, false);
-  private_nh_.param<int>("instance_mode", rubis::instance_mode_, 0);
 
   control_command_pub_ = nh_.advertise<std_msgs::String>("/ctrl_mode", 1);
   vehicle_cmd_pub_ = nh_.advertise<vehicle_cmd_msg_t>("/vehicle_cmd", 1, true);
-  if(rubis::instance_mode_) rubis_vehicle_cmd_pub_ = nh_.advertise<rubis_msgs::VehicleCmd>("/rubis_vehicle_cmd", 1, true);
-  remote_cmd_sub_ = nh_.subscribe("/remote_cmd", 1, &TwistGate::remoteCmdCallback, this);
-  config_sub_ = nh_.subscribe("config/twist_filter", 1, &TwistGate::configCallback, this);
-
+  rubis_vehicle_cmd_pub_ = nh_.advertise<rubis_msgs::VehicleCmd>("/rubis_vehicle_cmd", 1, true);
+  
   timer_ = nh_.createTimer(ros::Duration(1.0 / loop_rate_), &TwistGate::timerCallback, this);
 
-  if(rubis::instance_mode_) auto_cmd_sub_stdmap_["twist_cmd"] = nh_.subscribe("/rubis_twist_cmd", 1, &TwistGate::autoCmdRubisTwistCmdCallback, this);
-  else auto_cmd_sub_stdmap_["twist_cmd"] = nh_.subscribe("/twist_cmd", 1, &TwistGate::autoCmdTwistCmdCallback, this);
+  // remote_cmd_sub_ = nh_.subscribe("/remote_cmd", 1, &TwistGate::remoteCmdCallback, this);
+  config_sub_ = nh_.subscribe("config/twist_filter", 1, &TwistGate::configCallback, this);
+  auto_cmd_sub_stdmap_["twist_cmd"] = nh_.subscribe("/rubis_twist_cmd", 1, &TwistGate::autoCmdRubisTwistCmdCallback, this);
   
-  auto_cmd_sub_stdmap_["mode_cmd"] = nh_.subscribe("/mode_cmd", 1, &TwistGate::modeCmdCallback, this);
-  auto_cmd_sub_stdmap_["gear_cmd"] = nh_.subscribe("/gear_cmd", 1, &TwistGate::gearCmdCallback, this);
-  auto_cmd_sub_stdmap_["accel_cmd"] = nh_.subscribe("/accel_cmd", 1, &TwistGate::accelCmdCallback, this);
-  auto_cmd_sub_stdmap_["steer_cmd"] = nh_.subscribe("/steer_cmd", 1, &TwistGate::steerCmdCallback, this);
-  auto_cmd_sub_stdmap_["brake_cmd"] = nh_.subscribe("/brake_cmd", 1, &TwistGate::brakeCmdCallback, this);
-  auto_cmd_sub_stdmap_["lamp_cmd"] = nh_.subscribe("/lamp_cmd", 1, &TwistGate::lampCmdCallback, this);
-  auto_cmd_sub_stdmap_["ctrl_cmd"] = nh_.subscribe("/ctrl_cmd", 1, &TwistGate::ctrlCmdCallback, this);
-  auto_cmd_sub_stdmap_["state"] = nh_.subscribe("/decision_maker/state", 1, &TwistGate::stateCallback, this);
-  auto_cmd_sub_stdmap_["emergency_velocity"] =
-      nh_.subscribe("emergency_velocity", 1, &TwistGate::emergencyCmdCallback, this);
+  // auto_cmd_sub_stdmap_["mode_cmd"] = nh_.subscribe("/mode_cmd", 1, &TwistGate::modeCmdCallback, this);
+  // auto_cmd_sub_stdmap_["gear_cmd"] = nh_.subscribe("/gear_cmd", 1, &TwistGate::gearCmdCallback, this);
+  // auto_cmd_sub_stdmap_["accel_cmd"] = nh_.subscribe("/accel_cmd", 1, &TwistGate::accelCmdCallback, this);
+  // auto_cmd_sub_stdmap_["steer_cmd"] = nh_.subscribe("/steer_cmd", 1, &TwistGate::steerCmdCallback, this);
+  // auto_cmd_sub_stdmap_["brake_cmd"] = nh_.subscribe("/brake_cmd", 1, &TwistGate::brakeCmdCallback, this);
+  // auto_cmd_sub_stdmap_["lamp_cmd"] = nh_.subscribe("/lamp_cmd", 1, &TwistGate::lampCmdCallback, this);
+  // auto_cmd_sub_stdmap_["ctrl_cmd"] = nh_.subscribe("/ctrl_cmd", 1, &TwistGate::ctrlCmdCallback, this);
+  // auto_cmd_sub_stdmap_["state"] = nh_.subscribe("/decision_maker/state", 1, &TwistGate::stateCallback, this);
+  // auto_cmd_sub_stdmap_["emergency_velocity"] =
+  //     nh_.subscribe("emergency_velocity", 1, &TwistGate::emergencyCmdCallback, this);
 
 
   twist_gate_msg_.header.seq = 0;
@@ -192,15 +193,26 @@ void TwistGate::remoteCmdCallback(const remote_msgs_t::ConstPtr& input_msg)
 
 void TwistGate::autoCmdTwistCmdCallback(const geometry_msgs::TwistStamped::ConstPtr& input_msg)
 {
-  rubis::instance_ = RUBIS_NO_INSTANCE;
+  rubis::instance_ = 0;
   updateTwistGateMsg(input_msg); 
 }
 
-void TwistGate::autoCmdRubisTwistCmdCallback(const rubis_msgs::TwistStamped::ConstPtr& _input_msg)
+void TwistGate::_autoCmdRubisTwistCmdCallback(const rubis_msgs::TwistStamped::ConstPtr& input_msg)
 {
-  geometry_msgs::TwistStamped::ConstPtr input_msg = boost::make_shared<const geometry_msgs::TwistStamped>(_input_msg->msg);
-  rubis::instance_ = _input_msg->instance;
-  updateTwistGateMsg(input_msg); 
+  if(rubis_twist_cmd_ptr_ == NULL) return;
+  if(!is_current_time_changed_){
+    current_time_ = input_msg->msg.header.stamp;  
+    is_current_time_changed_ = true;
+  }
+  rubis::instance_ = input_msg->instance;  
+  rubis::obj_instance_ = input_msg->obj_instance;  
+  geometry_msgs::TwistStamped::ConstPtr _input_msg = boost::make_shared<const geometry_msgs::TwistStamped>(input_msg->msg);
+  updateTwistGateMsg(_input_msg); 
+}
+
+void TwistGate::autoCmdRubisTwistCmdCallback(const rubis_msgs::TwistStamped::ConstPtr& input_msg)
+{
+  rubis_twist_cmd_ptr_ = boost::make_shared<rubis_msgs::TwistStamped const>(*input_msg);
 }
 
 inline void TwistGate::updateTwistGateMsg(const geometry_msgs::TwistStamped::ConstPtr& input_msg){
@@ -211,14 +223,9 @@ inline void TwistGate::updateTwistGateMsg(const geometry_msgs::TwistStamped::Con
     twist_gate_msg_.header.seq++;
     twist_gate_msg_.twist_cmd.twist = input_msg->twist;
     
-    if(rubis::instance_mode_ && rubis::instance_ != RUBIS_NO_INSTANCE){
-      rubis_twist_gate_msg_.instance = rubis::instance_;
-    }
+    rubis_twist_gate_msg_.instance = rubis::instance_;
     checkState();
   }
-
-  if(rubis::sched::is_task_ready_ == TASK_NOT_READY) rubis::sched::init_task();
-  rubis::sched::task_state_ = TASK_STATE_DONE;
 }
 
 void TwistGate::modeCmdCallback(const tablet_socket_msgs::mode_cmd::ConstPtr& input_msg)
@@ -347,15 +354,45 @@ void TwistGate::emergencyCmdCallback(const vehicle_cmd_msg_t::ConstPtr& input_ms
 
 void TwistGate::timerCallback(const ros::TimerEvent& e)
 {
+  rubis::start_task_profiling();
+  if(rubis_twist_cmd_ptr_ == NULL){
+    rubis::stop_task_profiling(rubis::instance_, 0);
+    return;
+  }
+  
+
+  static ros::Time previous_time = ros::Time::now(); 
+  static double previous_target_velocity = 0.0;
+  static double previous_target_accel = 0.0;
+
+  // Callback
+  _autoCmdRubisTwistCmdCallback(rubis_twist_cmd_ptr_);  
+
+  double diff_time = (current_time_ - previous_time).toSec();
+  double current_target_velocity = 0.0, current_target_accel = 0.0;
+
+  current_target_velocity = rubis_twist_cmd_ptr_->msg.twist.linear.x;
+  current_target_accel = (diff_time > 0) ? ((current_target_velocity - previous_target_velocity) / diff_time) : previous_target_accel;
+  
   if(zero_flag_ == 1)
     resetVehicleCmdMsg();
+  twist_gate_msg_.ctrl_cmd.linear_acceleration = current_target_accel;
+  twist_gate_msg_.ctrl_cmd.linear_velocity = current_target_velocity;
 
   vehicle_cmd_pub_.publish(twist_gate_msg_);
-  if(rubis::instance_mode_){
-    rubis_twist_gate_msg_.msg = twist_gate_msg_;
-    rubis_vehicle_cmd_pub_.publish(rubis_twist_gate_msg_);
+  rubis_twist_gate_msg_.msg = twist_gate_msg_;
+  rubis_vehicle_cmd_pub_.publish(rubis_twist_gate_msg_);
+  
+  
+  
+  if(is_current_time_changed_){
+    previous_time = current_time_;
+    previous_target_velocity = current_target_velocity;
+    previous_target_accel = current_target_accel;
+    is_current_time_changed_ = false;    
   }
-  rubis::sched::task_state_ = TASK_STATE_DONE;
+
+  rubis::stop_task_profiling(rubis::instance_, 0);
 }
 
 void TwistGate::configCallback(const autoware_config_msgs::ConfigTwistFilter& msg)
