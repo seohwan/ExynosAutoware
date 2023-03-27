@@ -1,17 +1,20 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>libvectormap</name>
+  <name>autoware_health_checker</name>
   <version>1.12.0</version>
-  <description>Common Library to Read Vector Map</description>
-  <maintainer email="sujiwo@ertl.jp">sujiwo</maintainer>
-  <license>Apache 2</license>
+  <description>The autoware_health_checker package</description>
+  <maintainer email="masaya.kataoka@tier4.jp">MasayaKataoka</maintainer>
+  <license>Apache 2.0</license>
 
-  <buildtool_depend>autoware_build_flags</buildtool_depend>
   <buildtool_depend>catkin</buildtool_depend>
+  <test_depend>rostest</test_depend>
 
-  <depend>cmake_modules</depend>
-  <depend>eigen</depend>
+  <depend>autoware_system_msgs</depend>
+  <depend>diagnostic_msgs</depend>
+  <depend>jsk_rviz_plugins</depend>
+  <depend>roscpp</depend>
+  <depend>rosgraph_msgs</depend>
+  <depend>rosunit</depend>
+  <depend>ros_observer</depend>
   <depend>roslint</depend>
-  <depend>vector_map</depend>
-  <depend>vector_map_msgs</depend>
 </package>
