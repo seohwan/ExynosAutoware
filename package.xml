@@ -1,19 +1,22 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>autoware_bag_tools</name>
+  <name>autoware_launcher_rviz</name>
   <version>1.12.0</version>
-  <description>Autoware modified bag_tools; ROS tools and scripts related to bagfiles</description>
-  <maintainer email="jacob.lambert@tier4.jp">Jacob Lambert</maintainer>
-  <author>Jacob Lambert</author>
-  <license>Apache 2</license>
+  <description>The autoware_launcher_rviz package</description>
+  <license>Apache 2.0</license>
+  <maintainer email="isamu-takagi@tier4.jp">Isamu Takagi</maintainer>
 
+  <buildtool_depend>autoware_build_flags</buildtool_depend>
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>cmake_modules</build_depend>
+  <depend>rosconsole</depend>
+  <depend>rviz</depend>
+  <depend>qtbase5-dev</depend>
 
-  <depend>nmea_msgs</depend>
-  <depend>rosbag</depend>
-  <depend>roslib</depend>
-  <depend>rospy</depend>
-  <depend>tinyxml</depend>
+  <exec_depend>libqt5-core</exec_depend>
+  <exec_depend>libqt5-widgets</exec_depend>
+
+  <export>
+    <rviz plugin="${prefix}/plugin_description.xml"/>
+  </export>
 </package>
