@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 2.8.3)
-project(points_downsampler)
+cmake_minimum_required(VERSION 2.8.12)
+project(vision_darknet_detect)
 
 if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
   add_definitions(-D__aarch64__)
@@ -9,68 +9,269 @@ find_package(autoware_build_flags REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS
   autoware_config_msgs
-  message_generation
-  pcl_conversions
-  pcl_ros
+  autoware_msgs
+  cv_bridge
+  image_transport
   roscpp
   sensor_msgs
-  velodyne_pointcloud
+  std_msgs
   rubis_lib
   rubis_msgs
 )
 
-add_message_files(
-  FILES
-  PointsDownsamplerInfo.msg
-)
+find_package(CUDA)
+find_package(OpenCV REQUIRED)
+find_package(OpenMP)
 
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-)
+catkin_package()
 
-catkin_package(
-  CATKIN_DEPENDS
-  message_runtime
-  pcl_conversions
-  pcl_ros
-  sensor_msgs
-  rubis_lib
-)
+set(CMAKE_CXX_FLAGS "-O3 -g -Wall ${CMAKE_CXX_FLAGS}")
+AW_CHECK_CUDA()
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
-SET(CMAKE_CXX_FLAGS "-O2 -g -Wall ${CMAKE_CXX_FLAGS}")
+if(USE_CUDA)
+  message(WARNING "Building vision_darknet_detect with CUDA")
 
-add_executable(voxel_grid_filter nodes/voxel_grid_filter/voxel_grid_filter.cpp)
-add_executable(ring_filter nodes/ring_filter/ring_filter.cpp)
-add_executable(distance_filter nodes/distance_filter/distance_filter.cpp)
-add_executable(random_filter nodes/random_filter/random_filter.cpp)
+  list(APPEND CUDA_NVCC_FLAGS "--std=c++11 -I$${PROJECT_SOURCE_DIR}/darknet/src -I${PROJECT_SOURCE_DIR}/src -DGPU")
+  SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
-add_dependencies(voxel_grid_filter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(ring_filter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(distance_filter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(random_filter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  #darknet
+  cuda_add_library(vision_darknet_detect_lib SHARED
+    darknet/src/activation_kernels.cu
+    darknet/src/avgpool_layer_kernels.cu
+    darknet/src/convolutional_kernels.cu
+    darknet/src/crop_layer_kernels.cu
+    darknet/src/col2im_kernels.cu
+    darknet/src/blas_kernels.cu
+    darknet/src/deconvolutional_kernels.cu
+    darknet/src/dropout_layer_kernels.cu
+    darknet/src/im2col_kernels.cu
+    darknet/src/maxpool_layer_kernels.cu
 
-target_link_libraries(voxel_grid_filter ${catkin_LIBRARIES})
-target_link_libraries(ring_filter ${catkin_LIBRARIES})
-target_link_libraries(distance_filter ${catkin_LIBRARIES})
-target_link_libraries(random_filter ${catkin_LIBRARIES})
+    darknet/src/gemm.c
+    darknet/src/utils.c
+    darknet/src/cuda.c
+    darknet/src/deconvolutional_layer.c
+    darknet/src/convolutional_layer.c
+    darknet/src/list.c
+    darknet/src/image.c
+    darknet/src/activations.c
+    darknet/src/im2col.c
+    darknet/src/col2im.c
+    darknet/src/blas.c
+    darknet/src/crop_layer.c
+    darknet/src/dropout_layer.c
+    darknet/src/maxpool_layer.c
+    darknet/src/softmax_layer.c
+    darknet/src/data.c
+    darknet/src/matrix.c
+    darknet/src/network.c
+    darknet/src/connected_layer.c
+    darknet/src/cost_layer.c
+    darknet/src/parser.c
+    darknet/src/option_list.c
+    darknet/src/detection_layer.c
+    darknet/src/route_layer.c
+    darknet/src/upsample_layer.c
+    darknet/src/box.c
+    darknet/src/normalization_layer.c
+    darknet/src/avgpool_layer.c
+    darknet/src/layer.c
+    darknet/src/local_layer.c
+    darknet/src/shortcut_layer.c
+    darknet/src/logistic_layer.c
+    darknet/src/activation_layer.c
+    darknet/src/rnn_layer.c
+    darknet/src/gru_layer.c
+    darknet/src/crnn_layer.c
+    darknet/src/batchnorm_layer.c
+    darknet/src/region_layer.c
+    darknet/src/reorg_layer.c
+    darknet/src/tree.c
+    darknet/src/lstm_layer.c
+    darknet/src/l2norm_layer.c
+    darknet/src/yolo_layer.c
+  )
 
-install(
-  TARGETS
-    voxel_grid_filter
-    ring_filter
-    distance_filter
-    random_filter
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+  target_compile_definitions(vision_darknet_detect_lib PUBLIC -DGPU)
+  cuda_add_cublas_to_target(vision_darknet_detect_lib)
+
+  if(OPENMP_FOUND)
+    set_target_properties(vision_darknet_detect_lib PROPERTIES
+      COMPILE_FLAGS ${OpenMP_CXX_FLAGS}
+      LINK_FLAGS ${OpenMP_CXX_FLAGS}
+    )
+  endif()
+
+  target_include_directories(vision_darknet_detect_lib PRIVATE
+    ${OpenCV_INCLUDE_DIR}
+    ${catkin_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS}
+    ${CUDA_INCLUDE_DIRS}
+    ${PROJECT_SOURCE_DIR}/darknet
+    ${PROJECT_SOURCE_DIR}/darknet/src
+    ${PROJECT_SOURCE_DIR}/src
+  )
+
+  target_link_libraries(vision_darknet_detect_lib
+    ${OpenCV_LIBRARIES}
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
+    ${Qt5Core_LIBRARIES}
+    ${CUDA_LIBRARIES}
+    ${CUDA_CUBLAS_LIBRARIES}
+    ${CUDA_curand_LIBRARY}
+
+  )
+
+  add_dependencies(vision_darknet_detect_lib
+    ${catkin_EXPORTED_TARGETS}
+  )
+
+  #ros node
+  cuda_add_executable(vision_darknet_detect
+    src/vision_darknet_detect_node.cpp
+    src/vision_darknet_detect.cpp
+    src/vision_darknet_detect.h
+    darknet/src/cuda.h
+    darknet/src/cuda.c
+  )
+
+  target_compile_definitions(vision_darknet_detect PUBLIC -DGPU)
+
+  target_include_directories(vision_darknet_detect PRIVATE
+    ${CUDA_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
+    ${PROJECT_SOURCE_DIR}/darknet
+    ${PROJECT_SOURCE_DIR}/darknet/src
+    ${PROJECT_SOURCE_DIR}/src
+  )
+
+  target_link_libraries(vision_darknet_detect
+    ${catkin_LIBRARIES}
+    ${OpenCV_LIBS}
+    ${CUDA_LIBRARIES}
+    ${CUDA_CUBLAS_LIBRARIES}
+    ${CUDA_curand_LIBRARY}
+    vision_darknet_detect_lib
+  )
+  add_dependencies(vision_darknet_detect
+    ${catkin_EXPORTED_TARGETS}
+  )
+  install(
+    TARGETS vision_darknet_detect_lib vision_darknet_detect
+    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  )
+else()
+  message(WARNING "Building vision_darknet_detect without CUDA")
+
+  add_library(vision_darknet_detect_lib SHARED
+    darknet/src/gemm.c
+    darknet/src/utils.c
+    darknet/src/cuda.c
+    darknet/src/deconvolutional_layer.c
+    darknet/src/convolutional_layer.c
+    darknet/src/list.c
+    darknet/src/image.c
+    darknet/src/activations.c
+    darknet/src/im2col.c
+    darknet/src/col2im.c
+    darknet/src/blas.c
+    darknet/src/crop_layer.c
+    darknet/src/dropout_layer.c
+    darknet/src/maxpool_layer.c
+    darknet/src/softmax_layer.c
+    darknet/src/data.c
+    darknet/src/matrix.c
+    darknet/src/network.c
+    darknet/src/connected_layer.c
+    darknet/src/cost_layer.c
+    darknet/src/parser.c
+    darknet/src/option_list.c
+    darknet/src/detection_layer.c
+    darknet/src/route_layer.c
+    darknet/src/upsample_layer.c
+    darknet/src/box.c
+    darknet/src/normalization_layer.c
+    darknet/src/avgpool_layer.c
+    darknet/src/layer.c
+    darknet/src/local_layer.c
+    darknet/src/shortcut_layer.c
+    darknet/src/logistic_layer.c
+    darknet/src/activation_layer.c
+    darknet/src/rnn_layer.c
+    darknet/src/gru_layer.c
+    darknet/src/crnn_layer.c
+    darknet/src/batchnorm_layer.c
+    darknet/src/region_layer.c
+    darknet/src/reorg_layer.c
+    darknet/src/tree.c
+    darknet/src/lstm_layer.c
+    darknet/src/l2norm_layer.c
+    darknet/src/yolo_layer.c
+  )
+
+  target_include_directories(vision_darknet_detect_lib PRIVATE
+    ${OpenCV_INCLUDE_DIR}
+    ${catkin_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS}
+    ${PROJECT_SOURCE_DIR}/darknet
+    ${PROJECT_SOURCE_DIR}/darknet/src
+    ${PROJECT_SOURCE_DIR}/src
+  )
+
+  target_link_libraries(vision_darknet_detect_lib
+    ${OpenCV_LIBRARIES}
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
+    ${Qt5Core_LIBRARIES}
+    m
+    pthread
+  )
+
+  add_dependencies(vision_darknet_detect_lib
+    ${catkin_EXPORTED_TARGETS}
+  )
+
+  #ros node
+  add_executable(vision_darknet_detect
+    src/vision_darknet_detect_node.cpp
+    src/vision_darknet_detect.cpp
+    src/vision_darknet_detect.h
+    darknet/src/cuda.h
+    darknet/src/cuda.c
+  )
+
+  target_include_directories(vision_darknet_detect PRIVATE
+    ${catkin_INCLUDE_DIRS}
+    ${PROJECT_SOURCE_DIR}/darknet
+    ${PROJECT_SOURCE_DIR}/darknet/src
+    ${PROJECT_SOURCE_DIR}/src
+  )
+
+  target_link_libraries(vision_darknet_detect
+    ${catkin_LIBRARIES}
+    ${OpenCV_LIBS}
+    vision_darknet_detect_lib
+  )
+  add_dependencies(vision_darknet_detect
+    ${catkin_EXPORTED_TARGETS}
+  )
+  install(
+    TARGETS vision_darknet_detect_lib vision_darknet_detect
+    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  )
+endif()
 
 install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+  PATTERN ".svn" EXCLUDE
+)
+
+install(DIRECTORY darknet/cfg/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/darknet/cfg/
   PATTERN ".svn" EXCLUDE
 )
