@@ -1,36 +1,72 @@
-cmake_minimum_required(VERSION 2.8.3)
-project(tablet_socket)
+cmake_minimum_required(VERSION 2.8.12)
+project(autoware_camera_lidar_calibrator)
+
+include(FindPkgConfig)
 
 find_package(autoware_build_flags REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
-  autoware_can_msgs
   autoware_msgs
+  cv_bridge
   geometry_msgs
-  gnss
+  image_transport
+  pcl_conversions
+  pcl_ros
   roscpp
-  tablet_socket_msgs
+  sensor_msgs
   tf
 )
-
-set(CMAKE_CXX_FLAGS "-O2 -Wall ${CMAKE_CXX_FLAGS}")
+find_package(Qt5Core REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(PCL)
 
 catkin_package()
 
+set(CMAKE_CXX_FLAGS "-O3 -g -Wall ${CMAKE_CXX_FLAGS}")
+
 include_directories(
-  include
   ${catkin_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
 
-add_executable(tablet_receiver nodes/tablet_receiver/tablet_receiver.cpp)
-target_link_libraries(tablet_receiver ${catkin_LIBRARIES})
-add_dependencies(tablet_receiver ${catkin_EXPORTED_TARGETS})
+link_directories(${PCL_LIBRARY_DIRS})
+link_directories(${OpenCV_LIBRARY_DIRS})
 
-add_executable(tablet_sender nodes/tablet_sender/tablet_sender.cpp)
-target_link_libraries(tablet_sender ${catkin_LIBRARIES})
-add_dependencies(tablet_sender ${catkin_EXPORTED_TARGETS})
+#camera lidar node
+add_executable(autoware_camera_lidar_calibration_node
+  src/autoware_camera_lidar_calibration/camera_lidar_calibration_node.cpp
+)
+target_link_libraries(autoware_camera_lidar_calibration_node
+  ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+add_dependencies(autoware_camera_lidar_calibration_node ${catkin_EXPORTED_TARGETS})
 
-install(TARGETS tablet_receiver tablet_sender
+#camera intrinsics node
+catkin_python_setup()
+
+catkin_install_python(
+  PROGRAMS
+    nodes/cameracalibrator.py
+    nodes/cameracheck.py
+    scripts/tarfile_calibration.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS
+  autoware_camera_lidar_calibration_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+  PATTERN ".svn" EXCLUDE
+)
+
+install(DIRECTORY docs/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/docs
+  PATTERN ".svn" EXCLUDE
 )

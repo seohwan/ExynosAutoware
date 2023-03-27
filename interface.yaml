@@ -1,4 +1,11 @@
-- name: /tablet_receiver
-  publish: [/gear_cmd, /mode_cmd, /route_cmd, /gnss_pose, /gnss_stat]
-- name: /tablet_sender
-  subscribe: [/error_info, /can_info, /mode_info, /ndt_stat, /wf_stat]
+- name: /cameracalibrator
+  subscribe: [/left, /right, /image]
+  client: [/camera/set_camera_info, /left_camera/set_camera_info,
+    /right_camera/set_camera_info]
+- name: /cameracheck
+  subscribe: [/monocular/image_rect, /monocular/camera_info,
+    /stereo/left/image_rect, /stereo/left/camera_info,
+    /stereo/right/image_rect, /stereo/right/camera_info]
+- name: /autoware_camera_lidar_calibration_node
+  subscribe: [/image_rectified, /camera_info, /clicked_point,
+    /image_rectified/screenpoint]
